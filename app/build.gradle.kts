@@ -4,6 +4,7 @@ plugins {
     id("com.google.dagger.hilt.android")
     id("com.google.devtools.ksp")
     kotlin("plugin.serialization") version "1.9.22"
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -23,8 +24,18 @@ android {
         }
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("../secureops-release-key.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+            keyAlias = "secureops"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: System.getenv("KEYSTORE_PASSWORD") ?: ""
+        }
+    }
+
     buildTypes {
         release {
+            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
@@ -120,8 +131,13 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
 
-    // Speech Recognition
-    implementation("androidx.speech:speech:1.0.0-alpha01")
+    // Note: RunAnywhere SDK integration ready - currently using simulated AI responses
+    // Uncomment when SDK becomes available:
+    // implementation("com.github.RunanywhereAI.runanywhere-sdks:runanywhere-kotlin:android-v0.1.1-alpha")
+
+    // Speech Recognition - Using standard Android speech APIs
+    // Speech recognition is available through android.speech.SpeechRecognizer
+    // No additional dependencies needed
 
     // Coil for image loading
     implementation("io.coil-kt:coil-compose:2.5.0")
@@ -132,6 +148,11 @@ dependencies {
 
     // Logging
     implementation("com.jakewharton.timber:timber:5.0.1")
+
+    // Charts & Visualization
+    implementation("com.patrykandpatrick.vico:compose:1.13.1")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.13.1")
+    implementation("com.patrykandpatrick.vico:core:1.13.1")
 
     // Testing
     testImplementation("junit:junit:4.13.2")

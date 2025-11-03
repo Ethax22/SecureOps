@@ -25,6 +25,7 @@ class SecureOpsMessagingService : FirebaseMessagingService() {
 
         Timber.d("Message received from: ${message.from}")
 
+        // Firebase Messaging Service: handle notification and data payloads
         message.notification?.let { notification ->
             showNotification(
                 title = notification.title ?: "SecureOps",
@@ -32,7 +33,7 @@ class SecureOpsMessagingService : FirebaseMessagingService() {
             )
         }
 
-        message.data.isNotEmpty().let {
+        if (message.data.isNotEmpty()) {
             handleDataPayload(message.data)
         }
     }

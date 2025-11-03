@@ -58,3 +58,4 @@ Thumbs.db
 
 # Secret keys
 secrets.properties
+keystore.properties

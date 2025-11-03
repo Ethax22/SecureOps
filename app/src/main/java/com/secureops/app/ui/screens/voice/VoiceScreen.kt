@@ -115,7 +115,7 @@ fun VoiceScreen() {
 
 @Composable
 fun VoiceMessageBubble(message: VoiceMessage) {
-    val alignment = if (message.isUser) Alignment.End else Alignment.Start
+    val alignment = if (message.isUser) Alignment.CenterEnd else Alignment.CenterStart
 
     Box(
         modifier = Modifier.fillMaxWidth(),
