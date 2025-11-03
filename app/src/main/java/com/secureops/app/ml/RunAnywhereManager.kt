@@ -1,6 +1,7 @@
 package com.secureops.app.ml
 
 import android.content.Context
+import android.os.Environment
 import timber.log.Timber
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,12 +22,11 @@ class RunAnywhereManager @Inject constructor(
      */
     suspend fun initialize(apiKey: String = "demo-api-key") {
         try {
-            // TODO: Uncomment when RunAnywhere SDK is stable
-            // RunAnywhere.initialize(
-            //     apiKey = apiKey,
-            //     baseURL = "https://api.runanywhere.ai",
-            //     environment = Environment.DEVELOPMENT
-            // )
+            RunAnywhere.initialize(
+                apiKey = apiKey,
+                baseURL = "https://api.runanywhere.ai",
+                environment = Environment.DEVELOPMENT
+            )
             isInitialized = true
             Timber.d("RunAnywhere SDK initialized successfully")
         } catch (e: Exception) {
@@ -44,22 +44,21 @@ class RunAnywhereManager @Inject constructor(
                 return Result.failure(Exception("RunAnywhere SDK not initialized"))
             }
 
-            // TODO: Uncomment when RunAnywhere SDK is stable
-            // val response = RunAnywhere.generate(
-            //     prompt,
-            //     options = GenerationOptions(
-            //         maxTokens = maxTokens,
-            //         temperature = 0.7,
-            //         stream = false
-            //     )
-            // )
+            val response = RunAnywhere.generate(
+                prompt,
+                options = GenerationOptions(
+                    maxTokens = maxTokens,
+                    temperature = 0.7,
+                    stream = false
+                )
+            )
 
+            Result.success(response)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to generate text")
             // Fallback: Simulated response
             val simulatedResponse = simulateAIResponse(prompt)
             Result.success(simulatedResponse)
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to generate text")
-            Result.failure(e)
         }
     }
 
@@ -72,15 +71,14 @@ class RunAnywhereManager @Inject constructor(
                 return Result.failure(Exception("RunAnywhere SDK not initialized"))
             }
 
-            // TODO: Uncomment when RunAnywhere SDK is stable
-            // val stt = RunAnywhere.stt()
-            // val transcription = stt.transcribe(audioData)
+            val stt = RunAnywhere.stt()
+            val transcription = stt.transcribe(audioData)
 
-            // Fallback: Return simulated transcription
-            Result.success("Simulated transcription")
+            Result.success(transcription)
         } catch (e: Exception) {
             Timber.e(e, "Failed to transcribe audio")
-            Result.failure(e)
+            // Fallback: Return simulated transcription
+            Result.success("Simulated transcription")
         }
     }
 

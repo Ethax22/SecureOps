@@ -131,9 +131,8 @@ dependencies {
     implementation("org.tensorflow:tensorflow-lite-metadata:0.4.4")
     implementation("org.tensorflow:tensorflow-lite-gpu:2.14.0")
 
-    // Note: RunAnywhere SDK integration ready - currently using simulated AI responses
-    // Uncomment when SDK becomes available:
-    // implementation("com.github.RunanywhereAI.runanywhere-sdks:runanywhere-kotlin:android-v0.1.1-alpha")
+    // RunAnywhere SDK integration 
+    implementation("com.github.RunanywhereAI.runanywhere-sdks:runanywhere-kotlin:android-v0.1.1-alpha")
 
     // Speech Recognition - Using standard Android speech APIs
     // Speech recognition is available through android.speech.SpeechRecognizer
