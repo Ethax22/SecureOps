@@ -9,11 +9,8 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class AnalyticsRepository @Inject constructor(
+class AnalyticsRepository(
     private val pipelineDao: PipelineDao
 ) {
 

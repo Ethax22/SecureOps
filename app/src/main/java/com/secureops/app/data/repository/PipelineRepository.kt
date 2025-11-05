@@ -13,11 +13,8 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PipelineRepository @Inject constructor(
+class PipelineRepository(
     private val pipelineDao: PipelineDao,
     private val gitHubService: GitHubService,
     private val gitLabService: GitLabService,

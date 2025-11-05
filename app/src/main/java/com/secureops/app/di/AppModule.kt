@@ -5,24 +5,14 @@ import androidx.room.Room
 import com.secureops.app.data.local.SecureOpsDatabase
 import com.secureops.app.data.local.dao.AccountDao
 import com.secureops.app.data.local.dao.PipelineDao
-import dagger.Module
-import dagger.Provides
-import dagger.hilt.InstallIn
-import dagger.hilt.android.qualifiers.ApplicationContext
-import dagger.hilt.components.SingletonComponent
-import javax.inject.Singleton
+import org.koin.android.ext.koin.androidContext
+import org.koin.dsl.module
 
-@Module
-@InstallIn(SingletonComponent::class)
-object AppModule {
-
-    @Provides
-    @Singleton
-    fun provideSecureOpsDatabase(
-        @ApplicationContext context: Context
-    ): SecureOpsDatabase {
-        return Room.databaseBuilder(
-            context,
+val appModule = module {
+    // Database
+    single {
+        Room.databaseBuilder(
+            androidContext(),
             SecureOpsDatabase::class.java,
             "secureops_database"
         )
@@ -30,21 +20,7 @@ object AppModule {
             .build()
     }
 
-    @Provides
-    @Singleton
-    fun provideAccountDao(database: SecureOpsDatabase): AccountDao {
-        return database.accountDao()
-    }
-
-    @Provides
-    @Singleton
-    fun providePipelineDao(database: SecureOpsDatabase): PipelineDao {
-        return database.pipelineDao()
-    }
-
-    @Provides
-    @Singleton
-    fun provideContext(@ApplicationContext context: Context): Context {
-        return context
-    }
+    // DAOs
+    single<AccountDao> { get<SecureOpsDatabase>().accountDao() }
+    single<PipelineDao> { get<SecureOpsDatabase>().pipelineDao() }
 }

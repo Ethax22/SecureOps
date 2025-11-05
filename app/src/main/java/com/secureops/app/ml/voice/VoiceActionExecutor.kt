@@ -6,11 +6,8 @@ import com.secureops.app.domain.model.*
 import com.secureops.app.ml.VoiceCommandProcessor
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class VoiceActionExecutor @Inject constructor(
+class VoiceActionExecutor(
     private val pipelineRepository: PipelineRepository,
     private val voiceProcessor: VoiceCommandProcessor,
     private val remediationExecutor: RemediationExecutor,

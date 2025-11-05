@@ -6,9 +6,11 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.secureops.app.ui.screens.aimodels.AIModelsScreen
 import com.secureops.app.ui.screens.dashboard.DashboardScreen
 import com.secureops.app.ui.screens.analytics.AnalyticsScreen
 import com.secureops.app.ui.screens.settings.SettingsScreen
+import com.secureops.app.ui.screens.settings.AddAccountScreen
 import com.secureops.app.ui.screens.voice.VoiceScreen
 import com.secureops.app.ui.screens.details.BuildDetailsScreen
 
@@ -16,7 +18,9 @@ sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Analytics : Screen("analytics")
     object Settings : Screen("settings")
+    object AddAccount : Screen("add_account")
     object Voice : Screen("voice")
+    object AIModels : Screen("ai_models")
     object BuildDetails : Screen("build_details/{pipelineId}") {
         fun createRoute(pipelineId: String) = "build_details/$pipelineId"
     }
@@ -44,7 +48,30 @@ fun SecureOpsNavGraph(
         }
 
         composable(Screen.Settings.route) {
-            SettingsScreen()
+            SettingsScreen(
+                onNavigateToAddAccount = {
+                    navController.navigate(Screen.AddAccount.route)
+                },
+                onNavigateToAIModels = {
+                    navController.navigate(Screen.AIModels.route)
+                }
+            )
+        }
+
+        composable(Screen.AddAccount.route) {
+            AddAccountScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.AIModels.route) {
+            AIModelsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
         }
 
         composable(Screen.Voice.route) {

@@ -3,11 +3,11 @@ package com.secureops.app.ml
 import com.secureops.app.domain.model.FailedStep
 import com.secureops.app.domain.model.RootCauseAnalysis
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class RootCauseAnalyzer @Inject constructor() {
+/**
+ * Analyzes failure logs to identify root causes
+ */
+class RootCauseAnalyzer {
 
     /**
      * Analyzes build failure logs and generates root cause analysis

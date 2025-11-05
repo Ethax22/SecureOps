@@ -6,11 +6,8 @@ import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.Pipeline
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class CascadeAnalyzer @Inject constructor(
+class CascadeAnalyzer(
     private val pipelineDao: PipelineDao
 ) {
 

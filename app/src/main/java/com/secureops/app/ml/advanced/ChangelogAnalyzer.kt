@@ -7,11 +7,8 @@ import com.secureops.app.domain.model.Pipeline
 import com.secureops.app.ml.RunAnywhereManager
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class ChangelogAnalyzer @Inject constructor(
+class ChangelogAnalyzer(
     private val pipelineDao: PipelineDao,
     private val runAnywhereManager: RunAnywhereManager
 ) {

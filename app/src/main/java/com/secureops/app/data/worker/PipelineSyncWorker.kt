@@ -1,23 +1,22 @@
 package com.secureops.app.data.worker
 
 import android.content.Context
-import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
 import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.data.repository.PipelineRepository
-import dagger.assisted.Assisted
-import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import org.koin.core.component.KoinComponent
+import org.koin.core.component.inject
 import timber.log.Timber
 
-@HiltWorker
-class PipelineSyncWorker @AssistedInject constructor(
-    @Assisted appContext: Context,
-    @Assisted workerParams: WorkerParameters,
-    private val accountRepository: AccountRepository,
-    private val pipelineRepository: PipelineRepository
-) : CoroutineWorker(appContext, workerParams) {
+class PipelineSyncWorker(
+    appContext: Context,
+    workerParams: WorkerParameters
+) : CoroutineWorker(appContext, workerParams), KoinComponent {
+
+    private val accountRepository: AccountRepository by inject()
+    private val pipelineRepository: PipelineRepository by inject()
 
     override suspend fun doWork(): Result {
         return try {

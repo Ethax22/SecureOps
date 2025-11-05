@@ -9,11 +9,8 @@ import okhttp3.*
 import okio.ByteString
 import timber.log.Timber
 import java.util.concurrent.TimeUnit
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PipelineStreamService @Inject constructor() {
+class PipelineStreamService {
 
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)

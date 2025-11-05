@@ -6,11 +6,9 @@ import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.data.repository.PipelineRepository
 import com.secureops.app.domain.model.Account
 import com.secureops.app.domain.model.Pipeline
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
 data class DashboardUiState(
     val accounts: List<Account> = emptyList(),
@@ -20,8 +18,7 @@ data class DashboardUiState(
     val isRefreshing: Boolean = false
 )
 
-@HiltViewModel
-class DashboardViewModel @Inject constructor(
+class DashboardViewModel(
     private val accountRepository: AccountRepository,
     private val pipelineRepository: PipelineRepository
 ) : ViewModel() {

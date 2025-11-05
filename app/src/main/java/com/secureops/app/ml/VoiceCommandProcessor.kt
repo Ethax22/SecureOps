@@ -3,11 +3,11 @@ package com.secureops.app.ml
 import com.secureops.app.domain.model.CommandIntent
 import com.secureops.app.domain.model.VoiceCommand
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class VoiceCommandProcessor @Inject constructor() {
+/**
+ * Processes voice commands and extracts intent
+ */
+class VoiceCommandProcessor {
 
     /**
      * Process voice input text and extract intent and parameters

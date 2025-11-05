@@ -8,11 +8,8 @@ import com.secureops.app.ml.RunAnywhereManager
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class DeploymentScheduler @Inject constructor(
+class DeploymentScheduler(
     private val pipelineDao: PipelineDao,
     private val runAnywhereManager: RunAnywhereManager
 ) {

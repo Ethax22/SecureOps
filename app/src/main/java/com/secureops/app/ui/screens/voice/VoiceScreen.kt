@@ -1,7 +1,10 @@
 package com.secureops.app.ui.screens.voice
 
+import android.Manifest
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,22 +13,35 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import com.google.accompanist.permissions.shouldShowRationale
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun VoiceScreen() {
-    var isListening by remember { mutableStateOf(false) }
-    val messages = remember {
-        mutableStateListOf(
-            VoiceMessage("You", "What's the status of my builds?", true),
-            VoiceMessage(
-                "SecureOps",
-                "All builds are healthy! You have 12 successful builds and 0 failures.",
-                false
-            )
+    val context = LocalContext.current
+    val viewModel: VoiceViewModel = viewModel(
+        factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(
+            context.applicationContext as android.app.Application
         )
+    )
+    val uiState by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
+
+    // Request microphone permission
+    val recordAudioPermission = rememberPermissionState(Manifest.permission.RECORD_AUDIO)
+
+    // Auto-scroll to bottom when new messages arrive
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.size - 1)
+        }
     }
 
     Scaffold(
@@ -34,12 +50,25 @@ fun VoiceScreen() {
         },
         floatingActionButton = {
             FloatingActionButton(
-                onClick = { isListening = !isListening },
-                containerColor = if (isListening) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+                onClick = {
+                    if (recordAudioPermission.status.isGranted) {
+                        if (uiState.isListening) {
+                            viewModel.stopListening()
+                        } else {
+                            viewModel.startListening()
+                        }
+                    } else {
+                        recordAudioPermission.launchPermissionRequest()
+                    }
+                },
+                containerColor = if (uiState.isListening)
+                    MaterialTheme.colorScheme.error
+                else
+                    MaterialTheme.colorScheme.primary
             ) {
                 Icon(
                     imageVector = Icons.Default.Mic,
-                    contentDescription = if (isListening) "Stop listening" else "Start listening"
+                    contentDescription = if (uiState.isListening) "Stop listening" else "Start listening"
                 )
             }
         }
@@ -49,25 +78,80 @@ fun VoiceScreen() {
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
+            // Show permission rationale if needed
+            if (!recordAudioPermission.status.isGranted && recordAudioPermission.status.shouldShowRationale) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp)
+                    ) {
+                        Text(
+                            text = "Microphone Permission Required",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "This feature requires microphone access to listen to your voice commands. Please grant the permission to use voice assistant.",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = { recordAudioPermission.launchPermissionRequest() }
+                        ) {
+                            Text("Grant Permission")
+                        }
+                    }
+                }
+            }
+
             // Messages
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .fillMaxWidth(),
                 contentPadding = PaddingValues(16.dp),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                items(messages) { message ->
+                items(uiState.messages) { message ->
                     VoiceMessageBubble(message)
                 }
             }
 
-            // Listening indicator
-            if (isListening) {
+            // Error message
+            uiState.errorMessage?.let { errorMsg ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.errorContainer
+                    )
+                ) {
+                    Text(
+                        text = errorMsg,
+                        modifier = Modifier.padding(12.dp),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+
+            // Listening indicator
+            if (uiState.isListening) {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
                     colors = CardDefaults.cardColors(
                         containerColor = MaterialTheme.colorScheme.primaryContainer
                     )
@@ -85,7 +169,7 @@ fun VoiceScreen() {
                         )
                         Spacer(modifier = Modifier.width(12.dp))
                         Text(
-                            text = "Listening...",
+                            text = uiState.listeningText ?: "Listening...",
                             style = MaterialTheme.typography.bodyLarge,
                             fontWeight = FontWeight.Medium
                         )
@@ -101,11 +185,19 @@ fun VoiceScreen() {
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 SuggestionChip(
-                    onClick = { },
+                    onClick = {
+                        if (recordAudioPermission.status.isGranted) {
+                            viewModel.handleSuggestionClick("Check status")
+                        }
+                    },
                     label = { Text("Check status") }
                 )
                 SuggestionChip(
-                    onClick = { },
+                    onClick = {
+                        if (recordAudioPermission.status.isGranted) {
+                            viewModel.handleSuggestionClick("Risky builds?")
+                        }
+                    },
                     label = { Text("Risky builds?") }
                 )
             }
@@ -154,9 +246,3 @@ fun VoiceMessageBubble(message: VoiceMessage) {
         }
     }
 }
-
-data class VoiceMessage(
-    val sender: String,
-    val content: String,
-    val isUser: Boolean
-)

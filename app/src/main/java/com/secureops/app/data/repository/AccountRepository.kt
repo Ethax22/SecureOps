@@ -10,11 +10,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.util.UUID
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class AccountRepository @Inject constructor(
+class AccountRepository(
     private val accountDao: AccountDao,
     private val tokenManager: SecureTokenManager
 ) {

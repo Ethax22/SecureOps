@@ -4,11 +4,8 @@ import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.Pipeline
 import com.secureops.app.ml.RunAnywhereManager
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class PlaybookManager @Inject constructor(
+class PlaybookManager(
     private val runAnywhereManager: RunAnywhereManager
 ) {
 

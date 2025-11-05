@@ -6,11 +6,8 @@ import android.security.keystore.KeyProperties
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class SecureTokenManager @Inject constructor(
+class SecureTokenManager(
     private val context: Context
 ) {
     private val masterKey: MasterKey by lazy {

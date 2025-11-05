@@ -13,11 +13,8 @@ import com.secureops.app.R
 import com.secureops.app.domain.model.*
 import timber.log.Timber
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class NotificationManager @Inject constructor(
+class NotificationManager(
     private val context: Context
 ) {
     private val notificationManager =

@@ -17,17 +17,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.Pipeline
 import com.secureops.app.ui.theme.*
+import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
-    viewModel: DashboardViewModel = hiltViewModel(),
+    viewModel: DashboardViewModel = koinViewModel(),
     onNavigateToBuildDetails: (String) -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()

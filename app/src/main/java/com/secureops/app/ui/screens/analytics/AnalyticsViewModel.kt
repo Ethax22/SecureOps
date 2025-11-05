@@ -5,16 +5,13 @@ import androidx.lifecycle.viewModelScope
 import com.secureops.app.data.analytics.AnalyticsRepository
 import com.secureops.app.data.analytics.ExportFormat
 import com.secureops.app.data.analytics.TimeRange
-import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import javax.inject.Inject
 
-@HiltViewModel
-class AnalyticsViewModel @Inject constructor(
+class AnalyticsViewModel(
     private val analyticsRepository: AnalyticsRepository
 ) : ViewModel() {
 

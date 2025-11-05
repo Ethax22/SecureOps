@@ -20,14 +20,14 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
 import com.secureops.app.data.analytics.TimeRange
+import org.koin.androidx.compose.koinViewModel
 import kotlin.math.max
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
-    viewModel: AnalyticsViewModel = hiltViewModel()
+    viewModel: AnalyticsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTimeRange by remember { mutableStateOf(TimeRange.LAST_30_DAYS) }

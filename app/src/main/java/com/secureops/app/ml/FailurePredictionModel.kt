@@ -6,11 +6,11 @@ import org.tensorflow.lite.support.common.FileUtil
 import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class FailurePredictionModel @Inject constructor(
+/**
+ * ML model for predicting CI/CD pipeline failures
+ */
+class FailurePredictionModel(
     private val context: Context
 ) {
     private var interpreter: Interpreter? = null

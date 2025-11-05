@@ -6,12 +6,9 @@ import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.Pipeline
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 import kotlin.math.sqrt
 
-@Singleton
-class FlakyTestDetector @Inject constructor(
+class FlakyTestDetector(
     private val pipelineDao: PipelineDao
 ) {
 

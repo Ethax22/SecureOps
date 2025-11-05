@@ -14,7 +14,10 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    onNavigateToAddAccount: () -> Unit = {},
+    onNavigateToAIModels: () -> Unit = {}
+) {
     var darkModeEnabled by remember { mutableStateOf(false) }
     var notificationsEnabled by remember { mutableStateOf(true) }
 
@@ -32,6 +35,25 @@ fun SettingsScreen() {
         ) {
             item {
                 Text(
+                    text = "AI & Models",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(vertical = 8.dp)
+                )
+            }
+
+            item {
+                SettingsItem(
+                    icon = Icons.Default.Memory,
+                    title = "AI Models",
+                    subtitle = "Download and manage AI models",
+                    onClick = onNavigateToAIModels
+                )
+            }
+
+            item {
+                Divider(modifier = Modifier.padding(vertical = 8.dp))
+                Text(
                     text = "Accounts",
                     style = MaterialTheme.typography.titleMedium,
                     fontWeight = FontWeight.Bold,
@@ -44,7 +66,7 @@ fun SettingsScreen() {
                     icon = Icons.Default.Add,
                     title = "Add Account",
                     subtitle = "Connect a CI/CD provider",
-                    onClick = { }
+                    onClick = onNavigateToAddAccount
                 )
             }
 

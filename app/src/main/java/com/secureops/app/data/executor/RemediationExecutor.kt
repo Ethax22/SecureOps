@@ -5,11 +5,8 @@ import com.secureops.app.data.remote.dto.AzureCancelRequest
 import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.domain.model.*
 import timber.log.Timber
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class RemediationExecutor @Inject constructor(
+class RemediationExecutor(
     private val githubService: GitHubService,
     private val gitlabService: GitLabService,
     private val jenkinsService: JenkinsService,

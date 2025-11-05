@@ -6,11 +6,8 @@ import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import timber.log.Timber
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class TextToSpeechManager @Inject constructor(
+class TextToSpeechManager(
     private val context: Context
 ) {
     private var textToSpeech: TextToSpeech? = null

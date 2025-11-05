@@ -15,9 +15,7 @@ import androidx.navigation.compose.rememberNavController
 import com.secureops.app.ui.navigation.Screen
 import com.secureops.app.ui.navigation.SecureOpsNavGraph
 import com.secureops.app.ui.theme.SecureOpsTheme
-import dagger.hilt.android.AndroidEntryPoint
 
-@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
