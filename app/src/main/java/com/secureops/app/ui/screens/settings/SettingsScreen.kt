@@ -16,6 +16,7 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun SettingsScreen(
     onNavigateToAddAccount: () -> Unit = {},
+    onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToAIModels: () -> Unit = {}
 ) {
     var darkModeEnabled by remember { mutableStateOf(false) }
@@ -75,7 +76,7 @@ fun SettingsScreen(
                     icon = Icons.Default.AccountCircle,
                     title = "Manage Accounts",
                     subtitle = "View and edit connected accounts",
-                    onClick = { }
+                    onClick = onNavigateToManageAccounts
                 )
             }
 

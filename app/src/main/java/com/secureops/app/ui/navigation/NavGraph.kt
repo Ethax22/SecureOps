@@ -11,6 +11,7 @@ import com.secureops.app.ui.screens.dashboard.DashboardScreen
 import com.secureops.app.ui.screens.analytics.AnalyticsScreen
 import com.secureops.app.ui.screens.settings.SettingsScreen
 import com.secureops.app.ui.screens.settings.AddAccountScreen
+import com.secureops.app.ui.screens.settings.ManageAccountsScreen
 import com.secureops.app.ui.screens.voice.VoiceScreen
 import com.secureops.app.ui.screens.details.BuildDetailsScreen
 
@@ -19,6 +20,7 @@ sealed class Screen(val route: String) {
     object Analytics : Screen("analytics")
     object Settings : Screen("settings")
     object AddAccount : Screen("add_account")
+    object ManageAccounts : Screen("manage_accounts")
     object Voice : Screen("voice")
     object AIModels : Screen("ai_models")
     object BuildDetails : Screen("build_details/{pipelineId}") {
@@ -52,6 +54,9 @@ fun SecureOpsNavGraph(
                 onNavigateToAddAccount = {
                     navController.navigate(Screen.AddAccount.route)
                 },
+                onNavigateToManageAccounts = {
+                    navController.navigate(Screen.ManageAccounts.route)
+                },
                 onNavigateToAIModels = {
                     navController.navigate(Screen.AIModels.route)
                 }
@@ -62,6 +67,17 @@ fun SecureOpsNavGraph(
             AddAccountScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.ManageAccounts.route) {
+            ManageAccountsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToAddAccount = {
+                    navController.navigate(Screen.AddAccount.route)
                 }
             )
         }
