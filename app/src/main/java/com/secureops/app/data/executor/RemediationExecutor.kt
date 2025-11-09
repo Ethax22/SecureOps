@@ -5,6 +5,15 @@ import com.secureops.app.data.remote.dto.AzureCancelRequest
 import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.domain.model.*
 import timber.log.Timber
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
+import com.google.gson.Gson
+import java.util.concurrent.TimeUnit
+import okhttp3.Interceptor
+import android.util.Base64
 
 class RemediationExecutor(
     private val githubService: GitHubService,
@@ -12,7 +21,8 @@ class RemediationExecutor(
     private val jenkinsService: JenkinsService,
     private val circleCIService: CircleCIService,
     private val azureDevOpsService: AzureDevOpsService,
-    private val accountRepository: AccountRepository
+    private val accountRepository: AccountRepository,
+    private val gson: Gson
 ) {
 
     /**
@@ -51,7 +61,10 @@ class RemediationExecutor(
         return when (pipeline.provider) {
             CIProvider.GITHUB_ACTIONS -> rerunGitHubWorkflow(pipeline, token)
             CIProvider.GITLAB_CI -> rerunGitLabPipeline(pipeline, token)
-            CIProvider.JENKINS -> rerunJenkinsBuild(pipeline, token)
+            CIProvider.JENKINS -> {
+                val jenkinsServiceDynamic = createDynamicJenkinsService(pipeline, token)
+                rerunJenkinsBuild(pipeline, jenkinsServiceDynamic)
+            }
             CIProvider.CIRCLE_CI -> rerunCircleCIWorkflow(pipeline, token)
             CIProvider.AZURE_DEVOPS -> rerunAzureBuild(pipeline, token)
         }
@@ -95,7 +108,10 @@ class RemediationExecutor(
         return when (pipeline.provider) {
             CIProvider.GITHUB_ACTIONS -> cancelGitHubWorkflow(pipeline, token)
             CIProvider.GITLAB_CI -> ActionResult(false, "Cancel not implemented for GitLab")
-            CIProvider.JENKINS -> cancelJenkinsBuild(pipeline, token)
+            CIProvider.JENKINS -> {
+                val jenkinsServiceDynamic = createDynamicJenkinsService(pipeline, token)
+                cancelJenkinsBuild(pipeline, jenkinsServiceDynamic)
+            }
             CIProvider.CIRCLE_CI -> cancelCircleCIWorkflow(pipeline, token)
             CIProvider.AZURE_DEVOPS -> cancelAzureBuild(pipeline, token)
         }
@@ -195,10 +211,10 @@ class RemediationExecutor(
         )
     }
 
-    private suspend fun rerunJenkinsBuild(pipeline: Pipeline, token: String): ActionResult {
+    private suspend fun rerunJenkinsBuild(pipeline: Pipeline, jenkinsServiceDynamic: JenkinsService): ActionResult {
         val jobName = pipeline.repositoryName
         
-        val response = jenkinsService.triggerBuild(jobName)
+        val response = jenkinsServiceDynamic.triggerBuild(jobName)
         
         return ActionResult(
             success = response.isSuccessful,
@@ -260,11 +276,11 @@ class RemediationExecutor(
         )
     }
 
-    private suspend fun cancelJenkinsBuild(pipeline: Pipeline, token: String): ActionResult {
+    private suspend fun cancelJenkinsBuild(pipeline: Pipeline, jenkinsServiceDynamic: JenkinsService): ActionResult {
         val jobName = pipeline.repositoryName
         val buildNumber = pipeline.buildNumber
         
-        val response = jenkinsService.stopBuild(jobName, buildNumber)
+        val response = jenkinsServiceDynamic.stopBuild(jobName, buildNumber)
         
         return ActionResult(
             success = response.isSuccessful,
@@ -314,4 +330,57 @@ class RemediationExecutor(
             details = mapOf("provider" to "Azure DevOps")
         )
     }
+
+    private suspend fun createDynamicJenkinsService(
+        pipeline: Pipeline,
+        token: String
+    ): JenkinsService {
+        val account = accountRepository.getAccountById(pipeline.accountId)
+            ?: throw IllegalStateException("Account not found for pipeline ${pipeline.id}")
+
+        val normalizedBaseUrl =
+            if (account.baseUrl.endsWith("/")) account.baseUrl else "${account.baseUrl}/"
+
+        val base64Token = if (token.contains(":")) {
+            Base64.encodeToString(token.toByteArray(), Base64.NO_WRAP)
+        } else {
+            token
+        }
+
+        val authInterceptor = Interceptor { chain ->
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
+                .header("Authorization", "Basic $base64Token")
+                .method(original.method, original.body)
+
+            val request = requestBuilder.build()
+            chain.proceed(request)
+        }
+
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = if (com.secureops.app.BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+        }
+
+        val client = OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(120, TimeUnit.SECONDS)
+            .readTimeout(120, TimeUnit.SECONDS)
+            .writeTimeout(120, TimeUnit.SECONDS)
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(normalizedBaseUrl)
+            .client(client)
+            .addConverterFactory(ScalarsConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+
+        return retrofit.create(JenkinsService::class.java)
+    }
+
 }

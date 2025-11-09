@@ -13,6 +13,14 @@ import kotlinx.coroutines.flow.map
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.converter.scalars.ScalarsConverterFactory
+import com.google.gson.Gson
+import java.util.concurrent.TimeUnit
+import okhttp3.Interceptor
 
 class PipelineRepository(
     private val pipelineDao: PipelineDao,
@@ -22,7 +30,8 @@ class PipelineRepository(
     private val circleCIService: CircleCIService,
     private val azureDevOpsService: AzureDevOpsService,
     private val accountRepository: AccountRepository,
-    private val failurePredictionModel: FailurePredictionModel
+    private val failurePredictionModel: FailurePredictionModel,
+    private val gson: Gson
 ) {
     fun getAllPipelines(): Flow<List<Pipeline>> {
         return pipelineDao.getAllPipelines().map { entities ->
@@ -68,10 +77,10 @@ class PipelineRepository(
             // Update last sync time
             accountRepository.updateLastSyncTime(accountId)
 
-            Timber.d("Synced ${pipelines.size} pipelines for account: ${account.name}")
+            Timber.d("Synced ${pipelines.size} pipelines for account: ${account.name} (${account.provider})")
             Result.success(pipelines)
         } catch (e: Exception) {
-            Timber.e(e, "Failed to sync pipelines")
+            Timber.e(e, "Failed to sync pipelines for account ID: $accountId")
             Result.failure(e)
         }
     }
@@ -157,38 +166,70 @@ class PipelineRepository(
 
     private suspend fun fetchJenkinsPipelines(account: Account, token: String): List<Pipeline> {
         return try {
-            val response = jenkinsService.getJobs()
+            // Create a dynamic Jenkins service with the correct base URL and authentication
+            val jenkinsServiceDynamic = createJenkinsService(account.baseUrl, token)
+            
+            val response = jenkinsServiceDynamic.getJobs()
 
             if (response.isSuccessful && response.body() != null) {
-                response.body()!!.jobs.mapNotNull { job ->
-                    job.lastBuild?.let { build ->
-                        Pipeline(
-                            id = "${job.name}-${build.number}",
-                            accountId = account.id,
-                            repositoryName = job.name,
-                            repositoryUrl = job.url,
-                            branch = "main",
-                            buildNumber = build.number,
-                            status = mapJenkinsStatus(job.color, build.result),
-                            commitHash = "",
-                            commitMessage = "",
-                            commitAuthor = "",
-                            startedAt = build.timestamp,
-                            finishedAt = build.timestamp + build.duration,
-                            duration = build.duration,
-                            triggeredBy = "",
-                            webUrl = job.url,
-                            provider = CIProvider.JENKINS
-                        )
+                val jobsResponse = response.body()!!
+                Timber.d("Jenkins API response: ${jobsResponse.jobs.size} jobs found")
+
+                jobsResponse.jobs.mapNotNull { job ->
+                    try {
+                        job.lastBuild?.let { build ->
+                            Pipeline(
+                                id = "${job.name}-${build.number}",
+                                accountId = account.id,
+                                repositoryName = job.name,
+                                repositoryUrl = job.url,
+                                branch = "main", // Jenkins doesn't have branch info in this API call
+                                buildNumber = build.number,
+                                status = mapJenkinsStatus(job.color, build.result),
+                                commitHash = "",
+                                commitMessage = "", // We could fetch more detailed info from individual job API
+                                commitAuthor = "",
+                                startedAt = if (build.timestamp > 0) build.timestamp else null,
+                                finishedAt = if (build.timestamp > 0 && build.duration > 0)
+                                    build.timestamp + build.duration else null,
+                                duration = if (build.duration > 0) build.duration else null,
+                                triggeredBy = "", // We could get this from build details API
+                                webUrl = job.url,
+                                provider = CIProvider.JENKINS
+                            )
+                        }
+                    } catch (e: Exception) {
+                        Timber.e(e, "Failed to process Jenkins job: ${job.name}")
+                        null
                     }
+                }.also {
+                    Timber.d("Fetched ${it.size} Jenkins pipelines from ${account.baseUrl}")
                 }
             } else {
-                Timber.w("Jenkins API call failed: ${response.code()}")
+                Timber.w("Jenkins API call failed: ${response.code()} - ${response.message()}")
+                Timber.w("Response body: ${response.errorBody()?.string()}")
                 emptyList()
             }
         } catch (e: Exception) {
-            Timber.e(e, "Failed to fetch Jenkins pipelines")
+            Timber.e(e, "Failed to fetch Jenkins pipelines for account ${account.name}")
             emptyList()
+        }
+    }
+
+    private fun mapJenkinsStatus(color: String, result: String?): BuildStatus {
+        return when {
+            color.contains("anime") -> BuildStatus.RUNNING // Anime indicates running job in Jenkins
+            result == "SUCCESS" -> BuildStatus.SUCCESS
+            result == "FAILURE" -> BuildStatus.FAILURE
+            result == "UNSTABLE" -> BuildStatus.FAILURE // Treat unstable as failure
+            result == "ABORTED" -> BuildStatus.CANCELED
+            color == "blue" -> BuildStatus.SUCCESS // Blue means success in Jenkins
+            color == "red" -> BuildStatus.FAILURE // Red means failure in Jenkins
+            color == "yellow" -> BuildStatus.FAILURE // Yellow means unstable in Jenkins
+            else -> {
+                Timber.w("Unknown Jenkins status: color=$color, result=$result")
+                BuildStatus.UNKNOWN
+            }
         }
     }
 
@@ -272,6 +313,59 @@ class PipelineRepository(
         }
     }
 
+    /**
+     * Create a dynamic Jenkins service with proper base URL normalization and Basic authentication.
+     */
+    private fun createJenkinsService(baseUrl: String, token: String): JenkinsService {
+        // Normalize base URL to ensure it ends with a /
+        val normalizedBaseUrl = when {
+            baseUrl.isEmpty() -> throw IllegalArgumentException("Jenkins baseUrl must not be empty.")
+            baseUrl.endsWith("/") -> baseUrl
+            else -> "$baseUrl/"
+        }
+
+        // Handle Basic Auth: encode token if it's not already
+        val base64Token = if (token.contains(":")) {
+            android.util.Base64.encodeToString(token.toByteArray(), android.util.Base64.NO_WRAP)
+        } else {
+            token // Assume token already encoded
+        }
+
+        val authInterceptor = Interceptor { chain ->
+            val original = chain.request()
+            val requestBuilder = original.newBuilder()
+                .header("Authorization", "Basic $base64Token")
+                .method(original.method, original.body)
+            val request = requestBuilder.build()
+            chain.proceed(request)
+        }
+
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = if (com.secureops.app.BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+        }
+
+        val client = OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(loggingInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        val retrofit = Retrofit.Builder()
+            .baseUrl(normalizedBaseUrl)
+            .client(client)
+            .addConverterFactory(ScalarsConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+
+        return retrofit.create(JenkinsService::class.java)
+    }
+
     // Status mapping functions
     private fun mapGitHubStatus(status: String, conclusion: String?): BuildStatus {
         return when {
@@ -290,16 +384,6 @@ class PipelineRepository(
             "running" -> BuildStatus.RUNNING
             "pending" -> BuildStatus.PENDING
             "canceled" -> BuildStatus.CANCELED
-            else -> BuildStatus.PENDING
-        }
-    }
-
-    private fun mapJenkinsStatus(color: String, result: String?): BuildStatus {
-        return when {
-            color.contains("anime") -> BuildStatus.RUNNING
-            result == "SUCCESS" || color == "blue" -> BuildStatus.SUCCESS
-            result == "FAILURE" || color == "red" -> BuildStatus.FAILURE
-            result == "ABORTED" -> BuildStatus.CANCELED
             else -> BuildStatus.PENDING
         }
     }

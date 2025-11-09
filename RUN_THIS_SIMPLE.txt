@@ -1,0 +1,103 @@
+╔══════════════════════════════════════════════════════════════════╗
+║                    SIMPLE SOLUTION - 3 OPTIONS                   ║
+╚══════════════════════════════════════════════════════════════════╝
+
+Your ngrok authtoken: 359jjSsw4O9B3vFW9J2FzMb3NPn_6xioXCiztNUgAH
+
+
+═══════════════════════════════════════════════════════════════════
+OPTION 1: Restart PowerShell (EASIEST - TRY THIS FIRST!)
+═══════════════════════════════════════════════════════════════════
+
+1. Close this PowerShell window
+2. Open a NEW PowerShell window
+3. Run these 2 commands:
+
+   ngrok config add-authtoken 359jjSsw4O9B3vFW9J2FzMb3NPn_6xioXCiztNUgAH
+   
+   ngrok http 192.168.1.9:8080
+
+4. Keep window open and copy the HTTPS URL!
+
+
+═══════════════════════════════════════════════════════════════════
+OPTION 2: Use the Script (AUTOMATIC)
+═══════════════════════════════════════════════════════════════════
+
+In PowerShell, run:
+
+   .\start-ngrok.ps1
+
+This will automatically find ngrok and start it for you!
+
+
+═══════════════════════════════════════════════════════════════════
+OPTION 3: Manual Download (IF ABOVE DON'T WORK)
+═══════════════════════════════════════════════════════════════════
+
+1. Download: https://ngrok.com/download
+2. Extract ngrok.zip to C:\ngrok\
+3. Run these commands:
+
+   C:\ngrok\ngrok.exe config add-authtoken 359jjSsw4O9B3vFW9J2FzMb3NPn_6xioXCiztNUgAH
+   
+   C:\ngrok\ngrok.exe http 192.168.1.9:8080
+
+
+═══════════════════════════════════════════════════════════════════
+WHAT YOU'LL SEE
+═══════════════════════════════════════════════════════════════════
+
+ngrok
+
+Session Status                online
+Forwarding                    https://abc123.ngrok-free.app -> http://192.168.1.9:8080
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                              COPY THIS URL!
+
+
+═══════════════════════════════════════════════════════════════════
+UPDATE YOUR APP
+═══════════════════════════════════════════════════════════════════
+
+On your phone:
+1. Open SecureOps app
+2. Settings → Accounts
+3. Delete old Jenkins account (192.168.1.9:8080)
+4. Add new account:
+   - Provider: Jenkins
+   - Name: Prakash D (ngrok)
+   - Base URL: https://abc123.ngrok-free.app (your URL from above)
+   - Token: (same Jenkins token as before)
+5. Go to Dashboard
+6. Tap Refresh button
+
+
+═══════════════════════════════════════════════════════════════════
+DONE! ✅
+═══════════════════════════════════════════════════════════════════
+
+Your pipelines should now load in the app!
+
+Keep the PowerShell window with ngrok running while using the app.
+
+
+═══════════════════════════════════════════════════════════════════
+TROUBLESHOOTING
+═══════════════════════════════════════════════════════════════════
+
+Problem: ngrok command not found
+Solution: Try Option 1 (restart PowerShell) or Option 3 (manual download)
+
+Problem: Tunnel won't start
+Solution: Make sure Jenkins is running at http://192.168.1.9:8080
+
+Problem: App still shows no pipelines
+Solution: 
+  1. Test URL in phone's Chrome browser first
+  2. Make sure you deleted the old Jenkins account
+  3. Make sure the new account uses HTTPS URL from ngrok
+  4. Check that ngrok window is still open
+
+
+═══════════════════════════════════════════════════════════════════

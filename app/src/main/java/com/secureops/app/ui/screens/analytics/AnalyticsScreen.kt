@@ -21,6 +21,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.secureops.app.data.analytics.TimeRange
+import com.secureops.app.ui.screens.analytics.ExportStatus
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarDuration
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.max
 
@@ -30,8 +34,34 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val exportStatus by viewModel.exportStatus.collectAsState()
     var selectedTimeRange by remember { mutableStateOf(TimeRange.LAST_30_DAYS) }
     var showExportDialog by remember { mutableStateOf(false) }
+
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(exportStatus) {
+        when (val status = exportStatus) {
+            is ExportStatus.Success -> {
+                snackbarHostState.showSnackbar(
+                    message = "${status.fileName} saved to Downloads",
+                    duration = SnackbarDuration.Long
+                )
+                viewModel.clearExportStatus()
+            }
+
+            is ExportStatus.Error -> {
+                snackbarHostState.showSnackbar(
+                    message = "Export failed: ${status.message}",
+                    duration = SnackbarDuration.Long
+                )
+                viewModel.clearExportStatus()
+            }
+
+            else -> {}
+        }
+    }
 
     LaunchedEffect(selectedTimeRange) {
         viewModel.loadAnalytics(selectedTimeRange)
@@ -45,12 +75,23 @@ fun AnalyticsScreen(
                     IconButton(onClick = { viewModel.loadAnalytics(selectedTimeRange) }) {
                         Icon(Icons.Default.Refresh, contentDescription = "Refresh")
                     }
-                    IconButton(onClick = { showExportDialog = true }) {
-                        Icon(Icons.Default.Download, contentDescription = "Export")
+                    IconButton(
+                        onClick = { showExportDialog = true },
+                        enabled = exportStatus !is ExportStatus.Exporting
+                    ) {
+                        if (exportStatus is ExportStatus.Exporting) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                strokeWidth = 2.dp
+                            )
+                        } else {
+                            Icon(Icons.Default.Download, contentDescription = "Export")
+                        }
                     }
                 }
             )
-        }
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { paddingValues ->
         when (val state = uiState) {
             is AnalyticsUiState.Loading -> {
@@ -151,7 +192,7 @@ fun AnalyticsScreen(
         ExportDialog(
             onDismiss = { showExportDialog = false },
             onExport = { format ->
-                viewModel.exportAnalytics(format)
+                viewModel.exportAnalytics(context, format)
                 showExportDialog = false
             }
         )
@@ -306,7 +347,9 @@ fun FailureTrendsChart(
                 ) {
                     val maxValue = data.maxOf { it.second }
                     val minValue = data.minOf { it.second }
+                    val range = maxValue - minValue
 
+                    // Draw horizontal baseline
                     drawLine(
                         color = Color(0xFF4CAF50),
                         start = Offset(0f, size.height),
@@ -314,13 +357,15 @@ fun FailureTrendsChart(
                         strokeWidth = 2f
                     )
 
-                    data.forEachIndexed { index, (label, value) ->
-                        val x = (index * size.width) / (data.size - 1)
-                        val y = (1 - (value - minValue) / (maxValue - minValue)) * size.height
+                    // Handle edge cases
+                    if (data.size == 1) {
+                        // Only one data point - draw in the center
+                        val x = size.width / 2
+                        val y = size.height / 2
 
                         drawCircle(
                             color = Color(0xFF4CAF50),
-                            radius = 5f,
+                            radius = 8f,
                             center = Offset(x, y)
                         )
 
@@ -330,6 +375,52 @@ fun FailureTrendsChart(
                             end = Offset(x, size.height),
                             strokeWidth = 1f
                         )
+                    } else {
+                        data.forEachIndexed { index, (label, value) ->
+                            // Calculate x position
+                            val x = (index.toFloat() * size.width) / (data.size - 1)
+
+                            // Calculate y position with proper null/zero handling
+                            val y = if (range > 0f) {
+                                (1f - (value - minValue) / range) * size.height
+                            } else {
+                                // All values are the same - draw in the middle
+                                size.height / 2
+                            }
+
+                            // Draw point
+                            drawCircle(
+                                color = Color(0xFF4CAF50),
+                                radius = 5f,
+                                center = Offset(x, y)
+                            )
+
+                            // Draw vertical line from point to baseline
+                            drawLine(
+                                color = Color(0xFF4CAF50),
+                                start = Offset(x, y),
+                                end = Offset(x, size.height),
+                                strokeWidth = 1f
+                            )
+
+                            // Draw line connecting to next point
+                            if (index < data.size - 1) {
+                                val nextX = ((index + 1).toFloat() * size.width) / (data.size - 1)
+                                val nextValue = data[index + 1].second
+                                val nextY = if (range > 0f) {
+                                    (1f - (nextValue - minValue) / range) * size.height
+                                } else {
+                                    size.height / 2
+                                }
+
+                                drawLine(
+                                    color = Color(0xFF4CAF50).copy(alpha = 0.5f),
+                                    start = Offset(x, y),
+                                    end = Offset(nextX, nextY),
+                                    strokeWidth = 2f
+                                )
+                            }
+                        }
                     }
                 }
             }

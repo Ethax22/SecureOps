@@ -21,16 +21,13 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
 fun VoiceScreen() {
     val context = LocalContext.current
-    val viewModel: VoiceViewModel = viewModel(
-        factory = androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.getInstance(
-            context.applicationContext as android.app.Application
-        )
-    )
+    val viewModel: VoiceViewModel = koinViewModel()
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
 

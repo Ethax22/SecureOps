@@ -1,0 +1,106 @@
+======================================
+JENKINS DATA NOT SHOWING - START HERE
+======================================
+
+You said:
+- ngrok link obtained ✓
+- Jenkins account added ✓
+- ngrok URL works in mobile browser (a bit slow) ✓
+- Used ngrok link in the app ✓
+- BUT data is still not showing ✗
+
+MOST LIKELY CAUSES:
+1. Jenkins has no jobs/pipelines created
+2. Wrong username or API token
+3. Network/timeout issue due to slow connection
+
+======================================
+WHAT TO DO NOW (2 minutes)
+======================================
+
+STEP 1: Test if Jenkins has jobs and API works
+-----------------------------------------------
+Run this command:
+
+    .\test_jenkins_api.ps1
+
+This will:
+- Test your Jenkins API
+- Show how many jobs Jenkins has
+- Verify your username/token work
+- Tell you exactly what the problem is
+
+STEP 2: Based on the result
+----------------------------
+
+If it says "No jobs found":
+  -> Create a test job in Jenkins (instructions in the script output)
+  -> Then refresh the app
+
+If it says "401 Unauthorized":
+  -> Generate a new API token in Jenkins
+  -> Delete and re-add the account in the app
+
+If it shows jobs successfully:
+  -> Run: .\check_jenkins_logs.ps1
+  -> Refresh the app
+  -> Watch the logs to see what error appears
+
+======================================
+DETAILED STEPS IF NEEDED
+======================================
+
+If Jenkins has NO JOBS (most likely):
+--------------------------------------
+1. Open: http://192.168.1.9:8080
+2. Click "New Item"
+3. Name: test-pipeline
+4. Type: Freestyle project
+5. Click OK
+6. Click Save
+7. Click "Build Now"
+8. Wait for build to complete
+9. Refresh the app
+
+If you need NEW API TOKEN:
+---------------------------
+1. Open: http://192.168.1.9:8080
+2. Click your username (top right)
+3. Click "Configure"
+4. Scroll to "API Token"
+5. Click "Add new Token"
+6. Name: SecureOps
+7. Click "Generate"
+8. COPY the token
+9. In app: Settings > Manage Accounts > Delete old account
+10. Add new account with the new token
+
+If LOGS show errors:
+--------------------
+Run: .\check_jenkins_logs.ps1
+Then in the app, pull down to refresh
+Watch for error messages in the logs
+
+Common errors:
+- "timeout" = Slow connection, try again
+- "401" = Bad credentials
+- "0 jobs" or "0 pipelines" = No jobs in Jenkins
+
+======================================
+QUICK DIAGNOSTIC COMMANDS
+======================================
+
+Test Jenkins API:
+    .\test_jenkins_api.ps1
+
+Monitor logs:
+    .\check_jenkins_logs.ps1
+
+Full diagnostic:
+    .\diagnose_jenkins.ps1
+
+======================================
+
+START WITH: .\test_jenkins_api.ps1
+
+This will tell you exactly what's wrong!

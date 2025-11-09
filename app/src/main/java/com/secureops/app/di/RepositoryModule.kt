@@ -12,6 +12,7 @@ import com.secureops.app.ml.*
 import com.secureops.app.ml.advanced.*
 import com.secureops.app.ml.voice.TextToSpeechManager
 import com.secureops.app.ml.voice.VoiceActionExecutor
+import com.google.gson.Gson
 import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
@@ -21,13 +22,13 @@ val repositoryModule = module {
 
     // Repositories
     single { AccountRepository(get(), get()) }
-    single { PipelineRepository(get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { PipelineRepository(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
     single { AnalyticsRepository(get()) }
 
     // Services
     single { PipelineStreamService() }
     single { NotificationManager(androidContext()) }
-    single { RemediationExecutor(get(), get(), get(), get(), get(), get()) }
+    single { RemediationExecutor(get(), get(), get(), get(), get(), get(), get()) }
 
     // ML Components
     single { RunAnywhereManager(androidContext()) }
@@ -36,7 +37,7 @@ val repositoryModule = module {
     single { VoiceCommandProcessor() }
     single { TextToSpeechManager(androidContext()) }
     single { PlaybookManager(get()) }
-    single { VoiceActionExecutor(get(), get(), get(), get()) }
+    single { VoiceActionExecutor(get(), get(), get(), get(), get(), get()) }
 
     // Advanced ML Components
     single { CascadeAnalyzer(get()) }

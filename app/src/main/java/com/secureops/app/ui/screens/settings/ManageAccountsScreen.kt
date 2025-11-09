@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.secureops.app.domain.model.Account
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -21,6 +22,7 @@ import java.util.*
 fun ManageAccountsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddAccount: () -> Unit,
+    onNavigateToEditAccount: (String) -> Unit = {},
     viewModel: ManageAccountsViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -28,6 +30,8 @@ fun ManageAccountsScreen(
 
     // Show snackbar for messages
     val snackbarHostState = remember { SnackbarHostState() }
+
+    val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(uiState.error) {
         uiState.error?.let { error ->
@@ -105,7 +109,15 @@ fun ManageAccountsScreen(
                             AccountCard(
                                 account = account,
                                 onToggleStatus = { viewModel.toggleAccountStatus(account) },
-                                onDelete = { accountToDelete = account }
+                                onDelete = { accountToDelete = account },
+                                onEdit = {
+                                    coroutineScope.launch {
+                                        snackbarHostState.showSnackbar(
+                                            message = "Edit functionality coming soon! For now, please delete and re-add the account to update it.",
+                                            duration = SnackbarDuration.Long
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
@@ -158,7 +170,8 @@ fun ManageAccountsScreen(
 fun AccountCard(
     account: Account,
     onToggleStatus: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    onEdit: () -> Unit = {}
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
@@ -224,6 +237,19 @@ fun AccountCard(
                         expanded = showMenu,
                         onDismissRequest = { showMenu = false }
                     ) {
+                        DropdownMenuItem(
+                            text = { Text("Edit") },
+                            onClick = {
+                                onEdit()
+                                showMenu = false
+                            },
+                            leadingIcon = {
+                                Icon(
+                                    Icons.Default.Edit,
+                                    contentDescription = null
+                                )
+                            }
+                        )
                         DropdownMenuItem(
                             text = {
                                 Text(if (account.isActive) "Disable" else "Enable")

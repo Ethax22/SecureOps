@@ -9,13 +9,18 @@ import android.speech.SpeechRecognizer
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.secureops.app.ml.voice.VoiceActionExecutor
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import java.util.Locale
+import timber.log.Timber
 
-class VoiceViewModel(application: Application) : AndroidViewModel(application) {
+class VoiceViewModel(
+    application: Application,
+    private val voiceActionExecutor: VoiceActionExecutor
+) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(VoiceUiState())
     val uiState: StateFlow<VoiceUiState> = _uiState.asStateFlow()
 
@@ -29,9 +34,6 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
 
     init {
         initializeSpeechRecognizer()
-        // Add initial sample messages
-        addMessage(VoiceMessage("You", "What's the status of my builds?", true))
-        addMessage(VoiceMessage("SecureOps", "All builds are healthy! You have 12 successful builds and 0 failures.", false))
     }
 
     private fun initializeSpeechRecognizer() {
@@ -133,38 +135,34 @@ class VoiceViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             // Add user message
             addMessage(VoiceMessage("You", text, true))
-            
-            // Generate response
-            val response = generateResponse(text)
-            addMessage(VoiceMessage("SecureOps", response, false))
+
+            // Show processing indicator
+            _uiState.value = _uiState.value.copy(isProcessing = true)
+
+            try {
+                // Use actual voice action executor
+                val result = voiceActionExecutor.processAndExecute(text)
+
+                // Add response message
+                addMessage(VoiceMessage("SecureOps", result.spokenResponse, false))
+            } catch (e: Exception) {
+                Timber.e(e, "Error processing voice command")
+                addMessage(
+                    VoiceMessage(
+                        "SecureOps",
+                        "I encountered an error processing your request. Please try again.",
+                        false
+                    )
+                )
+            } finally {
+                _uiState.value = _uiState.value.copy(isProcessing = false)
+            }
         }
     }
 
     private fun generateResponse(query: String): String {
-        // Simple response logic based on keywords
-        return when {
-            query.contains("build", ignoreCase = true) || query.contains("status", ignoreCase = true) -> {
-                "All builds are healthy! You have 12 successful builds and 0 failures."
-            }
-            query.contains("risky", ignoreCase = true) || query.contains("risk", ignoreCase = true) -> {
-                "There are 3 high-risk builds that need attention. Would you like to see the details?"
-            }
-            query.contains("deploy", ignoreCase = true) -> {
-                "Last deployment was successful 2 hours ago to production environment."
-            }
-            query.contains("error", ignoreCase = true) || query.contains("fail", ignoreCase = true) -> {
-                "Currently there are no build failures. All systems are operational."
-            }
-            query.contains("hello", ignoreCase = true) || query.contains("hi", ignoreCase = true) -> {
-                "Hello! How can I help you with your CI/CD pipeline today?"
-            }
-            query.contains("help", ignoreCase = true) -> {
-                "I can help you check build status, view deployment info, analyze risks, and monitor your CI/CD pipeline. What would you like to know?"
-            }
-            else -> {
-                "I understood: \"$query\". I can help you with build status, deployments, and risk analysis. Please try asking about those topics."
-            }
-        }
+        // This method is no longer used but kept for backward compatibility
+        return "Processing your request..."
     }
 
     private fun updateListeningState(isListening: Boolean, listeningText: String?, errorMessage: String? = null) {
@@ -197,7 +195,8 @@ data class VoiceUiState(
     val isListening: Boolean = false,
     val listeningText: String? = null,
     val messages: List<VoiceMessage> = emptyList(),
-    val errorMessage: String? = null
+    val errorMessage: String? = null,
+    val isProcessing: Boolean = false
 )
 
 data class VoiceMessage(

@@ -78,6 +78,9 @@ fun SecureOpsNavGraph(
                 },
                 onNavigateToAddAccount = {
                     navController.navigate(Screen.AddAccount.route)
+                },
+                onNavigateToEditAccount = { accountId ->
+                    // Removed navigation to edit account
                 }
             )
         }

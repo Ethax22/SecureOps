@@ -1,9 +1,12 @@
 package com.secureops.app.data.analytics
 
+import android.content.Context
+import android.net.Uri
 import com.secureops.app.data.local.dao.PipelineDao
 import com.secureops.app.data.local.entity.toDomain
 import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.CIProvider
+import com.secureops.app.util.FileExportUtil
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -197,7 +200,7 @@ class AnalyticsRepository(
     /**
      * Export analytics data
      */
-    suspend fun exportAnalytics(format: ExportFormat): ExportResult {
+    suspend fun exportAnalytics(context: Context, format: ExportFormat): ExportResult {
         return try {
             val trends = getFailureTrends(TimeRange.LAST_30_DAYS)
             val causes = getCommonFailureCauses()
@@ -210,11 +213,15 @@ class AnalyticsRepository(
                 repositories = repoMetrics
             )
 
+            val fileResult = FileExportUtil.exportAnalytics(context, data, format)
+
             ExportResult(
-                success = true,
+                success = fileResult.success,
                 format = format,
                 data = data,
-                message = "Analytics exported successfully"
+                uri = fileResult.uri,
+                fileName = fileResult.fileName,
+                message = fileResult.message
             )
         } catch (e: Exception) {
             Timber.e(e, "Failed to export analytics")
@@ -222,6 +229,8 @@ class AnalyticsRepository(
                 success = false,
                 format = format,
                 data = null,
+                uri = null,
+                fileName = null,
                 message = "Export failed: ${e.message}"
             )
         }
@@ -328,6 +337,8 @@ data class ExportResult(
     val success: Boolean,
     val format: ExportFormat,
     val data: AnalyticsExport?,
+    val uri: Uri?,
+    val fileName: String?,
     val message: String
 )
 

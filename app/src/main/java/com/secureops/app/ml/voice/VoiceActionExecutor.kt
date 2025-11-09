@@ -2,6 +2,8 @@ package com.secureops.app.ml.voice
 
 import com.secureops.app.data.executor.RemediationExecutor
 import com.secureops.app.data.repository.PipelineRepository
+import com.secureops.app.data.repository.AccountRepository
+import com.secureops.app.data.analytics.AnalyticsRepository
 import com.secureops.app.domain.model.*
 import com.secureops.app.ml.VoiceCommandProcessor
 import kotlinx.coroutines.flow.first
@@ -11,7 +13,9 @@ class VoiceActionExecutor(
     private val pipelineRepository: PipelineRepository,
     private val voiceProcessor: VoiceCommandProcessor,
     private val remediationExecutor: RemediationExecutor,
-    private val ttsManager: TextToSpeechManager
+    private val ttsManager: TextToSpeechManager,
+    private val accountRepository: AccountRepository,
+    private val analyticsRepository: AnalyticsRepository
 ) {
 
     /**
@@ -54,6 +58,19 @@ class VoiceActionExecutor(
             CommandIntent.RERUN_BUILD -> rerunBuild(command)
             CommandIntent.ROLLBACK_DEPLOYMENT -> rollbackDeployment(command)
             CommandIntent.NOTIFY_TEAM -> notifyTeam(command)
+            CommandIntent.QUERY_ANALYTICS -> queryAnalytics(command)
+            CommandIntent.LIST_REPOSITORIES -> listRepositories(command)
+            CommandIntent.QUERY_REPOSITORY -> queryRepository(command)
+            CommandIntent.LIST_ACCOUNTS -> listAccounts(command)
+            CommandIntent.QUERY_ACCOUNT -> queryAccount(command)
+            CommandIntent.ADD_ACCOUNT -> addAccountHelp(command)
+            CommandIntent.SHOW_HELP -> showHelp(command)
+            CommandIntent.GREETING -> greeting(command)
+            CommandIntent.QUERY_DEPLOYMENT -> queryDeployment(command)
+            CommandIntent.QUERY_BRANCH -> queryBranch(command)
+            CommandIntent.QUERY_DURATION -> queryDuration(command)
+            CommandIntent.QUERY_SUCCESS_RATE -> querySuccessRate(command)
+            CommandIntent.QUERY_COMMIT -> queryCommit(command)
             CommandIntent.UNKNOWN -> VoiceExecutionResult(
                 success = false,
                 message = "I didn't understand that command",
@@ -256,6 +273,410 @@ class VoiceActionExecutor(
             message = response,
             spokenResponse = response
         )
+    }
+
+    /**
+     * Query analytics data
+     */
+    private suspend fun queryAnalytics(command: VoiceCommand): VoiceExecutionResult {
+        val pipelines = pipelineRepository.getAllPipelines().first()
+
+        val totalBuilds = pipelines.size
+        val failedBuilds = pipelines.count { it.status == BuildStatus.FAILURE }
+        val successBuilds = pipelines.count { it.status == BuildStatus.SUCCESS }
+        val failureRate = if (totalBuilds > 0) (failedBuilds.toFloat() / totalBuilds * 100) else 0f
+
+        val avgDuration = pipelines.mapNotNull { it.duration }.average().toLong()
+
+        val timeRange = command.parameters["timeRange"] ?: "all time"
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_ANALYTICS,
+            mapOf(
+                "totalBuilds" to totalBuilds,
+                "failureRate" to failureRate,
+                "avgDuration" to avgDuration,
+                "timeRange" to timeRange
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf(
+                "totalBuilds" to totalBuilds,
+                "failedBuilds" to failedBuilds,
+                "successBuilds" to successBuilds,
+                "failureRate" to failureRate,
+                "avgDuration" to avgDuration
+            )
+        )
+    }
+
+    /**
+     * List all repositories
+     */
+    private suspend fun listRepositories(command: VoiceCommand): VoiceExecutionResult {
+        val pipelines = pipelineRepository.getAllPipelines().first()
+        val repositories = pipelines.map { it.repositoryName }.distinct().sorted()
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.LIST_REPOSITORIES,
+            mapOf(
+                "repositories" to repositories,
+                "count" to repositories.size
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf("repositories" to repositories)
+        )
+    }
+
+    /**
+     * Query specific repository
+     */
+    private suspend fun queryRepository(command: VoiceCommand): VoiceExecutionResult {
+        val repoName = command.parameters["repository"]
+        val pipelines = pipelineRepository.getAllPipelines().first()
+
+        val repoBuilds = if (repoName != null) {
+            pipelines.filter { it.repositoryName.contains(repoName, ignoreCase = true) }
+        } else {
+            pipelines
+        }
+
+        val buildCount = repoBuilds.size
+        val failedBuilds = repoBuilds.count { it.status == BuildStatus.FAILURE }
+        val failureRate = if (buildCount > 0) (failedBuilds.toFloat() / buildCount * 100) else 0f
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_REPOSITORY,
+            mapOf(
+                "repository" to (repoName ?: "all repositories"),
+                "buildCount" to buildCount,
+                "failureRate" to failureRate
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf<String, Any>(
+                "repository" to (repoName ?: "all repositories"),
+                "buildCount" to buildCount,
+                "failureRate" to failureRate
+            )
+        )
+    }
+
+    /**
+     * List all accounts
+     */
+    private suspend fun listAccounts(command: VoiceCommand): VoiceExecutionResult {
+        val accounts = accountRepository.getAllAccounts().first()
+        val accountNames = accounts.map { "${it.name} (${it.provider.displayName})" }
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.LIST_ACCOUNTS,
+            mapOf(
+                "accounts" to accountNames,
+                "count" to accounts.size
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf("accounts" to accounts)
+        )
+    }
+
+    /**
+     * Query specific account
+     */
+    private suspend fun queryAccount(command: VoiceCommand): VoiceExecutionResult {
+        val providerParam = command.parameters["provider"]
+        val accounts = accountRepository.getAllAccounts().first()
+
+        val matchingAccounts = if (providerParam != null) {
+            accounts.filter { it.provider.displayName.contains(providerParam, ignoreCase = true) }
+        } else {
+            accounts
+        }
+
+        if (matchingAccounts.isEmpty()) {
+            val response = "No accounts found matching your query."
+            return VoiceExecutionResult(
+                success = false,
+                message = response,
+                spokenResponse = response
+            )
+        }
+
+        val account = matchingAccounts.first()
+        val pipelines = pipelineRepository.getPipelinesByAccount(account.id).first()
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_ACCOUNT,
+            mapOf(
+                "account" to account.name,
+                "provider" to account.provider.displayName,
+                "buildCount" to pipelines.size
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf("account" to account)
+        )
+    }
+
+    /**
+     * Show help for adding accounts
+     */
+    private suspend fun addAccountHelp(command: VoiceCommand): VoiceExecutionResult {
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.ADD_ACCOUNT,
+            emptyMap()
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response
+        )
+    }
+
+    /**
+     * Show help information
+     */
+    private suspend fun showHelp(command: VoiceCommand): VoiceExecutionResult {
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.SHOW_HELP,
+            emptyMap()
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response
+        )
+    }
+
+    /**
+     * Handle greetings
+     */
+    private suspend fun greeting(command: VoiceCommand): VoiceExecutionResult {
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.GREETING,
+            emptyMap()
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response
+        )
+    }
+
+    /**
+     * Query deployment information
+     */
+    private suspend fun queryDeployment(command: VoiceCommand): VoiceExecutionResult {
+        val pipelines = pipelineRepository.getAllPipelines().first()
+            .sortedByDescending { it.finishedAt ?: 0 }
+
+        val lastDeployment = pipelines.firstOrNull()
+
+        if (lastDeployment == null) {
+            val response = "I couldn't find any deployments yet."
+            return VoiceExecutionResult(
+                success = false,
+                message = response,
+                spokenResponse = response
+            )
+        }
+
+        val timeAgo = formatTimeAgo(lastDeployment.finishedAt ?: System.currentTimeMillis())
+        val status = if (lastDeployment.status == BuildStatus.SUCCESS) "succeeded" else "failed"
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_DEPLOYMENT,
+            mapOf(
+                "lastDeployment" to lastDeployment.repositoryName,
+                "time" to timeAgo,
+                "status" to status
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf("deployment" to lastDeployment)
+        )
+    }
+
+    /**
+     * Query branch information
+     */
+    private suspend fun queryBranch(command: VoiceCommand): VoiceExecutionResult {
+        val branchName = command.parameters["branch"] ?: "main"
+        val pipelines = pipelineRepository.getAllPipelines().first()
+            .filter { it.branch.equals(branchName, ignoreCase = true) }
+
+        val buildCount = pipelines.size
+        val failedCount = pipelines.count { it.status == BuildStatus.FAILURE }
+        val status = if (failedCount > 0) "$failedCount failed builds" else "healthy"
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_BRANCH,
+            mapOf(
+                "branch" to branchName,
+                "buildCount" to buildCount,
+                "status" to status
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf(
+                "branch" to branchName,
+                "buildCount" to buildCount
+            )
+        )
+    }
+
+    /**
+     * Query duration information
+     */
+    private suspend fun queryDuration(command: VoiceCommand): VoiceExecutionResult {
+        val pipelines = pipelineRepository.getAllPipelines().first()
+            .filter { it.duration != null && it.duration > 0 }
+
+        if (pipelines.isEmpty()) {
+            val response = "I don't have enough duration data yet."
+            return VoiceExecutionResult(
+                success = false,
+                message = response,
+                spokenResponse = response
+            )
+        }
+
+        val avgDuration = pipelines.mapNotNull { it.duration }.average().toLong()
+        val fastestDuration = pipelines.minOfOrNull { it.duration ?: Long.MAX_VALUE }
+        val slowestDuration = pipelines.maxOfOrNull { it.duration ?: 0L }
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_DURATION,
+            mapOf(
+                "avgDuration" to avgDuration,
+                "fastestDuration" to (fastestDuration as Any),
+                "slowestDuration" to (slowestDuration as Any)
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf<String, Any>(
+                "avgDuration" to avgDuration,
+                "fastestDuration" to (fastestDuration ?: 0L),
+                "slowestDuration" to (slowestDuration ?: 0L)
+            )
+        )
+    }
+
+    /**
+     * Query success rate
+     */
+    private suspend fun querySuccessRate(command: VoiceCommand): VoiceExecutionResult {
+        val pipelines = pipelineRepository.getAllPipelines().first()
+
+        val totalBuilds = pipelines.size
+        val successBuilds = pipelines.count { it.status == BuildStatus.SUCCESS }
+        val successRate = if (totalBuilds > 0) (successBuilds.toFloat() / totalBuilds * 100) else 0f
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_SUCCESS_RATE,
+            mapOf(
+                "successRate" to successRate,
+                "totalBuilds" to totalBuilds
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf(
+                "successRate" to successRate,
+                "totalBuilds" to totalBuilds
+            )
+        )
+    }
+
+    /**
+     * Query commit information
+     */
+    private suspend fun queryCommit(command: VoiceCommand): VoiceExecutionResult {
+        val pipelines = pipelineRepository.getAllPipelines().first()
+            .sortedByDescending { it.startedAt ?: 0 }
+
+        val lastPipeline = pipelines.firstOrNull()
+
+        if (lastPipeline == null) {
+            val response = "I couldn't find any commits yet."
+            return VoiceExecutionResult(
+                success = false,
+                message = response,
+                spokenResponse = response
+            )
+        }
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.QUERY_COMMIT,
+            mapOf(
+                "commitHash" to lastPipeline.commitHash,
+                "commitAuthor" to lastPipeline.commitAuthor,
+                "commitMessage" to lastPipeline.commitMessage
+            )
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf("commit" to lastPipeline)
+        )
+    }
+
+    /**
+     * Format time ago
+     */
+    private fun formatTimeAgo(timestamp: Long): String {
+        val now = System.currentTimeMillis()
+        val diff = now - timestamp
+
+        return when {
+            diff < 60_000 -> "just now"
+            diff < 3_600_000 -> "${diff / 60_000} minutes ago"
+            diff < 86_400_000 -> "${diff / 3_600_000} hours ago"
+            diff < 604_800_000 -> "${diff / 86_400_000} days ago"
+            else -> "${diff / 604_800_000} weeks ago"
+        }
     }
 
     /**

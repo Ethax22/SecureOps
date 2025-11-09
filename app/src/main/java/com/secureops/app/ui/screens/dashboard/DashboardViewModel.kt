@@ -28,6 +28,8 @@ class DashboardViewModel(
 
     init {
         loadData()
+        // Trigger initial sync
+        refreshPipelines()
     }
 
     private fun loadData() {
@@ -35,9 +37,16 @@ class DashboardViewModel(
             _uiState.update { it.copy(isLoading = true) }
 
             try {
-                // Observe accounts
+                // Observe accounts and trigger sync when accounts change
                 accountRepository.getActiveAccounts().collect { accounts ->
+                    val previousAccounts = _uiState.value.accounts
                     _uiState.update { it.copy(accounts = accounts) }
+
+                    // If new accounts were added, trigger sync
+                    if (accounts.size > previousAccounts.size) {
+                        Timber.d("New accounts detected, triggering sync")
+                        refreshPipelines()
+                    }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Error loading accounts")

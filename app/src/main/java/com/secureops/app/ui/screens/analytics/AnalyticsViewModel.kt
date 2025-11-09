@@ -1,5 +1,6 @@
 package com.secureops.app.ui.screens.analytics
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.secureops.app.data.analytics.AnalyticsRepository
@@ -17,6 +18,9 @@ class AnalyticsViewModel(
 
     private val _uiState = MutableStateFlow<AnalyticsUiState>(AnalyticsUiState.Loading)
     val uiState: StateFlow<AnalyticsUiState> = _uiState.asStateFlow()
+
+    private val _exportStatus = MutableStateFlow<ExportStatus>(ExportStatus.Idle)
+    val exportStatus: StateFlow<ExportStatus> = _exportStatus.asStateFlow()
 
     init {
         loadAnalytics(TimeRange.LAST_30_DAYS)
@@ -89,20 +93,30 @@ class AnalyticsViewModel(
         }
     }
 
-    fun exportAnalytics(format: ExportFormat) {
+    fun exportAnalytics(context: Context, format: ExportFormat) {
         viewModelScope.launch {
             try {
-                val result = analyticsRepository.exportAnalytics(format)
+                _exportStatus.value = ExportStatus.Exporting
+                val result = analyticsRepository.exportAnalytics(context, format)
                 if (result.success) {
-                    Timber.d("Analytics exported successfully: ${format.name}")
-                    // In a real app, would show success message or share file
+                    Timber.d("Analytics exported successfully: ${format.name} to ${result.fileName}")
+                    _exportStatus.value = ExportStatus.Success(
+                        fileName = result.fileName ?: "analytics.${format.name.lowercase()}",
+                        message = result.message
+                    )
                 } else {
                     Timber.e("Export failed: ${result.message}")
+                    _exportStatus.value = ExportStatus.Error(result.message)
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to export analytics")
+                _exportStatus.value = ExportStatus.Error(e.message ?: "Unknown error occurred")
             }
         }
+    }
+
+    fun clearExportStatus() {
+        _exportStatus.value = ExportStatus.Idle
     }
 }
 
@@ -127,4 +141,14 @@ sealed class AnalyticsUiState {
     data class Error(
         val message: String
     ) : AnalyticsUiState()
+}
+
+/**
+ * Export status for showing user feedback
+ */
+sealed class ExportStatus {
+    object Idle : ExportStatus()
+    object Exporting : ExportStatus()
+    data class Success(val fileName: String, val message: String) : ExportStatus()
+    data class Error(val message: String) : ExportStatus()
 }
