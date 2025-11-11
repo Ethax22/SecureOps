@@ -172,7 +172,7 @@ fun SettingsScreen(
                     SettingsItem(
                         icon = Icons.Default.Info,
                         title = "About SecureOps",
-                        subtitle = "Version 1.0.0",
+                        subtitle = "Version 2.0.0",
                         onClick = { },
                         iconColor = PrimaryPurple
                     )
