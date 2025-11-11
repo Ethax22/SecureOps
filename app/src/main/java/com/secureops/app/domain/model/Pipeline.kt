@@ -17,7 +17,9 @@ data class Pipeline(
     val duration: Long?,
     val triggeredBy: String,
     val webUrl: String,
-    val failurePrediction: FailurePrediction? = null
+    val failurePrediction: FailurePrediction? = null,
+    val logs: String? = null,  // Cached build logs
+    val logsCachedAt: Long? = null  // When logs were cached
 )
 
 data class FailurePrediction(

@@ -11,16 +11,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.secureops.app.domain.model.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationSettingsScreen(
-    preferences: NotificationPreferences = NotificationPreferences(),
-    onPreferencesChange: (NotificationPreferences) -> Unit = {},
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    viewModel: NotificationSettingsViewModel = viewModel()
 ) {
-    var currentPreferences by remember { mutableStateOf(preferences) }
+    val preferences by viewModel.preferences.collectAsState()
 
     Scaffold(
         topBar = {
@@ -51,10 +51,9 @@ fun NotificationSettingsScreen(
                     icon = Icons.Default.VolumeUp,
                     title = "Sound",
                     description = "Play sound for notifications",
-                    checked = currentPreferences.soundEnabled,
+                    checked = preferences.soundEnabled,
                     onCheckedChange = {
-                        currentPreferences = currentPreferences.copy(soundEnabled = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(soundEnabled = it))
                     }
                 )
             }
@@ -64,10 +63,9 @@ fun NotificationSettingsScreen(
                     icon = Icons.Default.Vibration,
                     title = "Vibration",
                     description = "Vibrate on notifications",
-                    checked = currentPreferences.vibrationEnabled,
+                    checked = preferences.vibrationEnabled,
                     onCheckedChange = {
-                        currentPreferences = currentPreferences.copy(vibrationEnabled = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(vibrationEnabled = it))
                     }
                 )
             }
@@ -77,10 +75,9 @@ fun NotificationSettingsScreen(
                     icon = Icons.Default.LightMode,
                     title = "LED Indicator",
                     description = "Show LED light for notifications",
-                    checked = currentPreferences.ledEnabled,
+                    checked = preferences.ledEnabled,
                     onCheckedChange = {
-                        currentPreferences = currentPreferences.copy(ledEnabled = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(ledEnabled = it))
                     }
                 )
             }
@@ -93,10 +90,9 @@ fun NotificationSettingsScreen(
 
             item {
                 NotificationChannelSelector(
-                    channels = currentPreferences.enabledChannels,
+                    channels = preferences.enabledChannels,
                     onChannelsChange = {
-                        currentPreferences = currentPreferences.copy(enabledChannels = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(enabledChannels = it))
                     }
                 )
             }
@@ -109,10 +105,9 @@ fun NotificationSettingsScreen(
 
             item {
                 RiskThresholdSelector(
-                    threshold = currentPreferences.riskThreshold,
+                    threshold = preferences.riskThreshold,
                     onThresholdChange = {
-                        currentPreferences = currentPreferences.copy(riskThreshold = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(riskThreshold = it))
                     }
                 )
             }
@@ -122,10 +117,9 @@ fun NotificationSettingsScreen(
                     icon = Icons.Default.Warning,
                     title = "Critical Only",
                     description = "Only notify for critical failures and high risks",
-                    checked = currentPreferences.alertOnCriticalOnly,
+                    checked = preferences.alertOnCriticalOnly,
                     onCheckedChange = {
-                        currentPreferences = currentPreferences.copy(alertOnCriticalOnly = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(alertOnCriticalOnly = it))
                     }
                 )
             }
@@ -138,10 +132,9 @@ fun NotificationSettingsScreen(
 
             item {
                 QuietHoursSettings(
-                    quietHours = currentPreferences.quietHours ?: QuietHours(),
+                    quietHours = preferences.quietHours ?: QuietHours(),
                     onQuietHoursChange = {
-                        currentPreferences = currentPreferences.copy(quietHours = it)
-                        onPreferencesChange(currentPreferences)
+                        viewModel.updatePreferences(preferences.copy(quietHours = it))
                     }
                 )
             }

@@ -1,8 +1,12 @@
 package com.secureops.app.data.executor
 
+import android.content.Context
 import com.secureops.app.data.remote.api.*
 import com.secureops.app.data.remote.dto.AzureCancelRequest
 import com.secureops.app.data.repository.AccountRepository
+import com.secureops.app.data.notification.SlackNotifier
+import com.secureops.app.data.notification.EmailNotifier
+import com.secureops.app.data.notification.SmtpConfig
 import com.secureops.app.domain.model.*
 import timber.log.Timber
 import okhttp3.OkHttpClient
@@ -16,14 +20,18 @@ import okhttp3.Interceptor
 import android.util.Base64
 
 class RemediationExecutor(
+    private val context: Context,
     private val githubService: GitHubService,
     private val gitlabService: GitLabService,
     private val jenkinsService: JenkinsService,
     private val circleCIService: CircleCIService,
     private val azureDevOpsService: AzureDevOpsService,
     private val accountRepository: AccountRepository,
+    private val slackNotifier: SlackNotifier,
     private val gson: Gson
 ) {
+
+    private val prefs = context.getSharedPreferences("notifications", Context.MODE_PRIVATE)
 
     /**
      * Execute a remediation action
@@ -148,15 +156,29 @@ class RemediationExecutor(
      * Notify via Slack
      */
     private suspend fun notifySlack(pipeline: Pipeline, parameters: Map<String, String>): ActionResult {
-        val webhookUrl = parameters["webhookUrl"]
+        val webhookUrl = parameters["webhookUrl"] ?: prefs.getString("slack_webhook_url", null)
         if (webhookUrl == null) {
             return ActionResult(false, "Slack webhook URL not configured")
         }
-        
-        return ActionResult(
-            success = true,
-            message = "Slack notification sent",
-            details = mapOf("channel" to "slack")
+
+        val message = parameters["message"]
+            ?: "Build notification for ${pipeline.repositoryName} #${pipeline.buildNumber}"
+
+        return slackNotifier.sendNotification(webhookUrl, pipeline, message).fold(
+            onSuccess = {
+                ActionResult(
+                    success = true,
+                    message = "Slack notification sent successfully",
+                    details = mapOf("channel" to "slack", "repository" to pipeline.repositoryName)
+                )
+            },
+            onFailure = { error ->
+                ActionResult(
+                    success = false,
+                    message = "Slack notification failed: ${error.message}",
+                    details = mapOf("error" to error.toString())
+                )
+            }
         )
     }
 
@@ -164,20 +186,62 @@ class RemediationExecutor(
      * Notify via Email
      */
     private suspend fun notifyEmail(pipeline: Pipeline, parameters: Map<String, String>): ActionResult {
-        val recipients = parameters["recipients"]
-        if (recipients == null) {
+        val recipients = parameters["recipients"]?.split(",")
+        if (recipients == null || recipients.isEmpty()) {
             return ActionResult(false, "Email recipients not specified")
         }
-        
-        return ActionResult(
-            success = true,
-            message = "Email notification sent to $recipients",
-            details = mapOf("channel" to "email")
+
+        // Get SMTP config from preferences
+        val smtpHost = prefs.getString("smtp_host", null)
+        val smtpPort = prefs.getInt("smtp_port", 587)
+        val smtpUsername = prefs.getString("smtp_username", null)
+        val smtpPassword = prefs.getString("smtp_password", null)
+        val fromEmail = prefs.getString("smtp_from_email", null)
+
+        if (smtpHost == null || smtpUsername == null || smtpPassword == null || fromEmail == null) {
+            return ActionResult(
+                success = false,
+                message = "SMTP not configured. Please configure email settings.",
+                details = mapOf("info" to "Go to Settings > Notifications to configure SMTP")
+            )
+        }
+
+        val config = SmtpConfig(
+            host = smtpHost,
+            port = smtpPort,
+            username = smtpUsername,
+            password = smtpPassword,
+            fromEmail = fromEmail
+        )
+
+        val notifier = EmailNotifier(config)
+        val subject =
+            "Build ${pipeline.status}: ${pipeline.repositoryName} #${pipeline.buildNumber}"
+
+        return notifier.sendEmail(recipients, subject, pipeline).fold(
+            onSuccess = {
+                ActionResult(
+                    success = true,
+                    message = "Email sent to ${recipients.joinToString()}",
+                    details = mapOf(
+                        "channel" to "email",
+                        "recipients" to recipients.size.toString()
+                    )
+                )
+            },
+            onFailure = { error ->
+                ActionResult(
+                    success = false,
+                    message = "Email failed: ${error.message}",
+                    details = mapOf("error" to error.toString())
+                )
+            }
         )
     }
 
-    // Provider-specific implementations
-
+    /**
+     * Rerun GitHub workflow
+     */
     private suspend fun rerunGitHubWorkflow(pipeline: Pipeline, token: String): ActionResult {
         val parts = pipeline.repositoryUrl.split("/")
         val owner = parts.getOrNull(parts.size - 2) ?: return ActionResult(false, "Invalid repo URL")

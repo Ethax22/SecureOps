@@ -1,8 +1,10 @@
 package com.secureops.app.ui.screens.analytics
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -340,88 +342,131 @@ fun FailureTrendsChart(
                     Text("No data available", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
+                // Show build count
+                Text(
+                    text = "${data.size} builds",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(start = 8.dp, end = 8.dp, top = 8.dp, bottom = 40.dp)
                 ) {
-                    val maxValue = data.maxOf { it.second }
-                    val minValue = data.minOf { it.second }
-                    val range = maxValue - minValue
+                    if (data.isEmpty()) return@Canvas
 
-                    // Draw horizontal baseline
-                    drawLine(
-                        color = Color(0xFF4CAF50),
-                        start = Offset(0f, size.height),
-                        end = Offset(size.width, size.height),
-                        strokeWidth = 2f
-                    )
+                    val chartHeight = size.height
+                    val chartWidth = size.width
+                    
+                    val failureColor = Color(0xFFF44336)
+                    val successColor = Color(0xFF4CAF50)
+                    val runningColor = Color(0xFFFFA726)
 
-                    // Handle edge cases
-                    if (data.size == 1) {
-                        // Only one data point - draw in the center
-                        val x = size.width / 2
-                        val y = size.height / 2
-
-                        drawCircle(
-                            color = Color(0xFF4CAF50),
-                            radius = 8f,
-                            center = Offset(x, y)
-                        )
-
+                    // Draw horizontal grid lines for reference
+                    for (i in 0..4) {
+                        val y = (i.toFloat() / 4f) * chartHeight
                         drawLine(
-                            color = Color(0xFF4CAF50),
-                            start = Offset(x, y),
-                            end = Offset(x, size.height),
+                            color = Color.Gray.copy(alpha = 0.15f),
+                            start = Offset(0f, y),
+                            end = Offset(chartWidth, y),
                             strokeWidth = 1f
                         )
-                    } else {
-                        data.forEachIndexed { index, (label, value) ->
-                            // Calculate x position
-                            val x = (index.toFloat() * size.width) / (data.size - 1)
-
-                            // Calculate y position with proper null/zero handling
-                            val y = if (range > 0f) {
-                                (1f - (value - minValue) / range) * size.height
-                            } else {
-                                // All values are the same - draw in the middle
-                                size.height / 2
-                            }
-
-                            // Draw point
-                            drawCircle(
-                                color = Color(0xFF4CAF50),
-                                radius = 5f,
-                                center = Offset(x, y)
-                            )
-
-                            // Draw vertical line from point to baseline
-                            drawLine(
-                                color = Color(0xFF4CAF50),
-                                start = Offset(x, y),
-                                end = Offset(x, size.height),
-                                strokeWidth = 1f
-                            )
-
-                            // Draw line connecting to next point
-                            if (index < data.size - 1) {
-                                val nextX = ((index + 1).toFloat() * size.width) / (data.size - 1)
-                                val nextValue = data[index + 1].second
-                                val nextY = if (range > 0f) {
-                                    (1f - (nextValue - minValue) / range) * size.height
-                                } else {
-                                    size.height / 2
-                                }
-
-                                drawLine(
-                                    color = Color(0xFF4CAF50).copy(alpha = 0.5f),
-                                    start = Offset(x, y),
-                                    end = Offset(nextX, nextY),
-                                    strokeWidth = 2f
-                                )
-                            }
-                        }
                     }
+
+                    // Calculate bar width and spacing
+                    val totalBars = data.size
+                    val spacing = chartWidth / (totalBars + 1).toFloat()
+                    val barWidth = (spacing * 0.7f).coerceAtMost(40f)
+
+                    // Draw bars for each build
+                    data.forEachIndexed { index, (label, value) ->
+                        val x = (index + 1) * spacing
+                        
+                        // Determine color based on value (0=success, 50=running, 100=failure)
+                        val barColor = when {
+                            value >= 80f -> failureColor  // Failure
+                            value >= 40f -> runningColor  // Running/Pending
+                            else -> successColor          // Success
+                        }
+                        
+                        // Calculate bar height (failures go up, successes stay at bottom)
+                        val barHeight = if (value >= 80f) {
+                            chartHeight * 0.85f  // Failures: 85% height
+                        } else if (value >= 40f) {
+                            chartHeight * 0.5f   // Running: 50% height
+                        } else {
+                            chartHeight * 0.15f  // Success: 15% height
+                        }
+                        
+                        val barTop = chartHeight - barHeight
+
+                        // Draw the bar with rounded top
+                        drawRoundRect(
+                            color = barColor,
+                            topLeft = Offset(x - barWidth / 2, barTop),
+                            size = Size(barWidth, barHeight),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx())
+                        )
+
+                        // Draw bar outline for clarity
+                        drawRoundRect(
+                            color = barColor.copy(alpha = 0.5f),
+                            topLeft = Offset(x - barWidth / 2, barTop),
+                            size = Size(barWidth, barHeight),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(4.dp.toPx()),
+                            style = androidx.compose.ui.graphics.drawscope.Stroke(width = 2f)
+                        )
+
+                        // Draw build label at the bottom
+                        // Note: In a real implementation, you'd use actual text drawing
+                        // For now, just draw a small indicator dot
+                        drawCircle(
+                            color = barColor.copy(alpha = 0.5f),
+                            radius = 3f,
+                            center = Offset(x, chartHeight + 10.dp.toPx())
+                        )
+                    }
+
+                    // Draw bottom axis line
+                    drawLine(
+                        color = Color.Gray.copy(alpha = 0.3f),
+                        start = Offset(0f, chartHeight),
+                        end = Offset(chartWidth, chartHeight),
+                        strokeWidth = 2f
+                    )
+                }
+                
+                // Legend
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Success indicator
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .background(Color(0xFF4CAF50), RoundedCornerShape(2.dp))
+                    )
+                    Text(
+                        text = " Success  ",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                    
+                    // Failure indicator
+                    Box(
+                        modifier = Modifier
+                            .size(12.dp)
+                            .background(Color(0xFFF44336), RoundedCornerShape(2.dp))
+                    )
+                    Text(
+                        text = " Failure",
+                        style = MaterialTheme.typography.labelSmall
+                    )
                 }
             }
         }
@@ -459,48 +504,48 @@ fun FailureCausesChart(
                     Text("No failures recorded", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             } else {
-                Canvas(
+                // Use horizontal bar chart instead of line chart for causes
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp)
+                        .padding(horizontal = 8.dp),
+                    verticalArrangement = Arrangement.SpaceEvenly
                 ) {
                     val maxValue = causes.values.maxOrNull() ?: 1
-                    val minValue = causes.values.minOrNull() ?: 0
-                    val entries = causes.entries.toList()
 
-                    drawLine(
-                        color = Color(0xFF4CAF50),
-                        start = Offset(0f, size.height),
-                        end = Offset(size.width, size.height),
-                        strokeWidth = 2f
-                    )
-
-                    entries.forEachIndexed { index, entry ->
-                        val value = entry.value
-                        val x = if (entries.size > 1) {
-                            (index.toFloat() * size.width) / (entries.size - 1)
-                        } else {
-                            size.width / 2
+                    causes.entries.take(5).forEach { (cause, count) ->
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = cause,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Text(
+                                    text = "$count",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(4.dp))
+                            LinearProgressIndicator(
+                                progress = count.toFloat() / maxValue,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp),
+                                color = when {
+                                    count >= maxValue * 0.7f -> Color(0xFFF44336)
+                                    count >= maxValue * 0.4f -> Color(0xFFFFA726)
+                                    else -> Color(0xFF4CAF50)
+                                },
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
                         }
-                        val normalizedValue = if (maxValue > minValue) {
-                            (value - minValue).toFloat() / (maxValue - minValue)
-                        } else {
-                            0.5f
-                        }
-                        val y = (1 - normalizedValue) * size.height
-
-                        drawCircle(
-                            color = Color(0xFF4CAF50),
-                            radius = 5f,
-                            center = Offset(x, y)
-                        )
-
-                        drawLine(
-                            color = Color(0xFF4CAF50),
-                            start = Offset(x, y),
-                            end = Offset(x, size.height),
-                            strokeWidth = 1f
-                        )
                     }
                 }
             }
@@ -620,7 +665,8 @@ fun RepositoryMetricItem(item: RepositoryMetricItem) {
                 item.failureRate < 5f -> Color(0xFF4CAF50)
                 item.failureRate < 15f -> Color(0xFFFFA726)
                 else -> Color(0xFFF44336)
-            }
+            },
+            trackColor = MaterialTheme.colorScheme.surfaceVariant
         )
         Spacer(modifier = Modifier.height(2.dp))
         Text(

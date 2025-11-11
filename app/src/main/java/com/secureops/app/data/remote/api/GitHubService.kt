@@ -1,6 +1,7 @@
 package com.secureops.app.data.remote.api
 
 import com.secureops.app.data.remote.dto.*
+import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.*
 
@@ -54,4 +55,15 @@ interface GitHubService {
         @Path("repo") repo: String,
         @Path("run_id") runId: Long
     ): Response<Unit>
+
+    @GET("repos/{owner}/{repo}/actions/runs/{run_id}/artifacts")
+    suspend fun getArtifacts(
+        @Path("owner") owner: String,
+        @Path("repo") repo: String,
+        @Path("run_id") runId: Long
+    ): Response<GitHubArtifactsResponse>
+
+    @GET
+    @Streaming
+    suspend fun downloadArtifact(@Url url: String): Response<ResponseBody>
 }

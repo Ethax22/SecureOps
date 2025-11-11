@@ -56,3 +56,21 @@ data class GitHubJob(
 data class GitHubLogsResponse(
     @SerializedName("logs") val logs: String
 )
+
+data class GitHubArtifactsResponse(
+    @SerializedName("total_count") val totalCount: Int,
+    @SerializedName("artifacts") val artifacts: List<GitHubArtifact>
+)
+
+data class GitHubArtifact(
+    @SerializedName("id") val id: Long,
+    @SerializedName("node_id") val nodeId: String,
+    @SerializedName("name") val name: String,
+    @SerializedName("size_in_bytes") val sizeInBytes: Long,
+    @SerializedName("url") val url: String,
+    @SerializedName("archive_download_url") val archiveDownloadUrl: String,
+    @SerializedName("expired") val expired: Boolean,
+    @SerializedName("created_at") val createdAt: String,
+    @SerializedName("updated_at") val updatedAt: String,
+    @SerializedName("expires_at") val expiresAt: String
+)

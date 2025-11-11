@@ -5,10 +5,12 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
@@ -30,6 +32,14 @@ fun AddAccountScreen(
     var token by remember { mutableStateOf("") }
     var tokenVisible by remember { mutableStateOf(false) }
     var showProviderDialog by remember { mutableStateOf(false) }
+
+    // Handle OAuth token when received
+    LaunchedEffect(uiState.oauthToken) {
+        uiState.oauthToken?.let { oauthToken ->
+            // Auto-fill the token field with OAuth access token
+            token = oauthToken.accessToken
+        }
+    }
 
     // Handle success
     LaunchedEffect(uiState.isSuccess) {
@@ -90,6 +100,50 @@ fun AddAccountScreen(
                         style = MaterialTheme.typography.bodyLarge
                     )
                 }
+            }
+
+            // Add OAuth button for supported providers
+            if (selectedProvider != null && supportsOAuth(selectedProvider)) {
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Button(
+                    onClick = {
+                        viewModel.startOAuthFlow(selectedProvider!!)
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+                    ),
+                    enabled = !uiState.isLoading
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Login,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text("Sign in with OAuth")
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                    Text(
+                        text = "OR",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 16.dp)
+                    )
+                    HorizontalDivider(modifier = Modifier.weight(1f))
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
             }
 
             // Account Name
@@ -268,6 +322,15 @@ fun AddAccountScreen(
             }
         )
     }
+}
+
+// Helper function to check if provider supports OAuth
+private fun supportsOAuth(provider: CIProvider?): Boolean {
+    return provider in listOf(
+        CIProvider.GITHUB_ACTIONS,
+        CIProvider.GITLAB_CI,
+        CIProvider.AZURE_DEVOPS
+    )
 }
 
 private fun getTokenHelpText(provider: CIProvider?): String {

@@ -232,6 +232,13 @@ class NotificationManager(
                     NotificationManager.IMPORTANCE_DEFAULT
                 ).apply {
                     description = "Custom alert rules"
+                },
+                NotificationChannel(
+                    "remediation",
+                    "Remediation Proposals",
+                    NotificationManager.IMPORTANCE_DEFAULT
+                ).apply {
+                    description = "Remediation proposals"
                 }
             )
 
@@ -285,6 +292,126 @@ class NotificationManager(
         notificationManager.notify(System.currentTimeMillis().toInt(), builder.build())
 
         Timber.d("Notification sent: $title - $message")
+    }
+
+    /**
+     * Send remediation consent notification with action buttons
+     */
+    fun notifyRemediationProposal(
+        proposal: com.secureops.app.data.remediation.AutoRemediationEngine.RemediationProposal
+    ) {
+        val pipeline = proposal.pipeline
+        val title = when (proposal.severity) {
+            com.secureops.app.data.remediation.AutoRemediationEngine.RemediationSeverity.CRITICAL -> 
+                "🚨 CRITICAL: Remediation Required"
+            com.secureops.app.data.remediation.AutoRemediationEngine.RemediationSeverity.HIGH -> 
+                "⚠️ HIGH: Remediation Suggested"
+            com.secureops.app.data.remediation.AutoRemediationEngine.RemediationSeverity.MEDIUM -> 
+                "ℹ️ Remediation Available"
+            com.secureops.app.data.remediation.AutoRemediationEngine.RemediationSeverity.LOW -> 
+                "💡 Remediation Option"
+        }
+        
+        val message = buildString {
+            append("${proposal.failureType} detected\n")
+            append("${proposal.reason}\n")
+            if (proposal.actions.isNotEmpty()) {
+                append("\nProposed: ${proposal.actions.size} action${if (proposal.actions.size > 1) "s" else ""}")
+            }
+            append("\nConfidence: ${(proposal.confidence * 100).toInt()}%")
+            append(" | Est. time: ${proposal.estimatedTime}")
+        }
+
+        // Intent for main app
+        val appIntent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("pipelineId", pipeline.id)
+            putExtra("remediationProposal", true)
+        }
+
+        val appPendingIntent = PendingIntent.getActivity(
+            context,
+            0,
+            appIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        // Create approve and decline action buttons
+        val approveIntent = Intent(context, RemediationActionReceiver::class.java).apply {
+            action = "com.secureops.app.APPROVE_REMEDIATION"
+            putExtra("pipelineId", pipeline.id)
+        }
+
+        val approvePendingIntent = PendingIntent.getBroadcast(
+            context,
+            pipeline.id.hashCode(),
+            approveIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val declineIntent = Intent(context, RemediationActionReceiver::class.java).apply {
+            action = "com.secureops.app.DECLINE_REMEDIATION"
+            putExtra("pipelineId", pipeline.id)
+        }
+
+        val declinePendingIntent = PendingIntent.getBroadcast(
+            context,
+            pipeline.id.hashCode() + 1,
+            declineIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val priority = when (proposal.severity) {
+            com.secureops.app.data.remediation.AutoRemediationEngine.RemediationSeverity.CRITICAL,
+            com.secureops.app.data.remediation.AutoRemediationEngine.RemediationSeverity.HIGH -> 
+                NotificationCompat.PRIORITY_HIGH
+            else -> NotificationCompat.PRIORITY_DEFAULT
+        }
+
+        val builder = NotificationCompat.Builder(context, "remediation")
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(
+                message + if (proposal.warning != null) "\n\n${proposal.warning}" else ""
+            ))
+            .setPriority(priority)
+            .setAutoCancel(false) // Don't dismiss automatically - user must choose
+            .setContentIntent(appPendingIntent)
+            .addAction(
+                R.drawable.ic_launcher_foreground,
+                "✅ Approve",
+                approvePendingIntent
+            )
+            .addAction(
+                R.drawable.ic_launcher_foreground,
+                "❌ Decline",
+                declinePendingIntent
+            )
+
+        // Apply preferences
+        if (preferences.soundEnabled && priority >= NotificationCompat.PRIORITY_HIGH) {
+            builder.setSound(RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION))
+        }
+
+        if (preferences.vibrationEnabled) {
+            builder.setVibrate(longArrayOf(0, 250, 250, 250))
+        }
+
+        if (preferences.ledEnabled) {
+            builder.setLights(0xFFFF9800.toInt(), 1000, 1000) // Orange for remediation
+        }
+
+        notificationManager.notify(pipeline.id.hashCode(), builder.build())
+
+        Timber.d("Remediation proposal notification sent: $title")
+    }
+
+    /**
+     * Dismiss remediation notification after user action
+     */
+    fun dismissRemediationNotification(pipelineId: String) {
+        notificationManager.cancel(pipelineId.hashCode())
     }
 
     /**

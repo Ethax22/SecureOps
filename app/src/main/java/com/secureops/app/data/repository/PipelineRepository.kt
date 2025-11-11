@@ -8,8 +8,10 @@ import com.secureops.app.data.remote.mapper.PipelineMapper
 import com.secureops.app.data.remote.mapper.PipelineMapper.toPipeline
 import com.secureops.app.domain.model.*
 import com.secureops.app.ml.FailurePredictionModel
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
 import timber.log.Timber
 import java.text.SimpleDateFormat
 import java.util.*
@@ -21,6 +23,7 @@ import retrofit2.converter.scalars.ScalarsConverterFactory
 import com.google.gson.Gson
 import java.util.concurrent.TimeUnit
 import okhttp3.Interceptor
+import java.io.File
 
 class PipelineRepository(
     private val pipelineDao: PipelineDao,
@@ -55,6 +58,16 @@ class PipelineRepository(
         return pipelineDao.getPipelineById(pipelineId)?.toDomain()
     }
 
+    suspend fun updatePipelineWithLogs(pipeline: Pipeline) {
+        try {
+            pipelineDao.updatePipeline(pipeline.toEntity())
+            Timber.d("Updated pipeline ${pipeline.id} with cached logs")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to update pipeline with logs")
+            throw e
+        }
+    }
+
     suspend fun syncPipelines(accountId: String): Result<List<Pipeline>> {
         return try {
             val account = accountRepository.getAccountById(accountId)
@@ -71,14 +84,32 @@ class PipelineRepository(
                 CIProvider.AZURE_DEVOPS -> fetchAzureDevOpsPipelines(account, token)
             }
 
-            // Cache pipelines locally
-            pipelineDao.insertPipelines(pipelines.map { it.toEntity() })
+            // Get existing pipelines from database to preserve predictions
+            val existingPipelines = pipelineDao.getAllPipelines()
+                .map { entities -> entities.map { it.toDomain() } }
+                .first()
+
+            val existingPredictions = existingPipelines
+                .associate { it.id to it.failurePrediction }
+
+            // Merge predictions into new pipeline data
+            val pipelinesWithPredictions = pipelines.map { pipeline ->
+                val existingPrediction = existingPredictions[pipeline.id]
+                if (existingPrediction != null) {
+                    pipeline.copy(failurePrediction = existingPrediction)
+                } else {
+                    pipeline
+                }
+            }
+
+            // Cache pipelines locally with preserved predictions
+            pipelineDao.insertPipelines(pipelinesWithPredictions.map { it.toEntity() })
 
             // Update last sync time
             accountRepository.updateLastSyncTime(accountId)
 
             Timber.d("Synced ${pipelines.size} pipelines for account: ${account.name} (${account.provider})")
-            Result.success(pipelines)
+            Result.success(pipelinesWithPredictions)
         } catch (e: Exception) {
             Timber.e(e, "Failed to sync pipelines for account ID: $accountId")
             Result.failure(e)
@@ -421,16 +452,44 @@ class PipelineRepository(
 
     suspend fun predictFailure(pipeline: Pipeline): Pipeline {
         return try {
-            // Get historical data
-            val repoName = pipeline.repositoryName
-            val historyCount = 10
+            Timber.d("🤖 Running ML prediction for pipeline: ${pipeline.id}")
 
-            // Mock commit diff and logs for prediction
-            val commitDiff = ""
-            val testHistory = emptyList<Boolean>()
-            val logs = ""
+            // Fetch real data instead of empty strings
+            
+            // 1. Fetch build logs
+            val logs = try {
+                val logsResult = fetchBuildLogs(pipeline)
+                logsResult.getOrNull() ?: ""
+            } catch (e: Exception) {
+                Timber.w("Could not fetch logs for prediction: ${e.message}")
+                ""
+            }
 
-            // Run prediction
+            // 2. Get test history from database (last 20 builds)
+            val testHistory = try {
+                withContext(Dispatchers.IO) {
+                    val allPipelines = pipelineDao.getAllPipelines()
+                        .map { entities -> entities.map { it.toDomain() } }
+                        .first()
+
+                    allPipelines
+                        .filter { p -> p.repositoryName == pipeline.repositoryName && p.accountId == pipeline.accountId }
+                        .sortedByDescending { p -> p.startedAt ?: 0 }
+                        .take(20)
+                        .map { p -> p.status == BuildStatus.SUCCESS }
+                }
+            } catch (e: Exception) {
+                Timber.w("Could not fetch test history for prediction: ${e.message}")
+                emptyList()
+            }
+
+            // 3. Commit diff (simplified - use commit message as proxy)
+            // In production, you'd fetch actual diff from Git API
+            val commitDiff = pipeline.commitMessage
+
+            Timber.d("Prediction inputs - Logs: ${logs.length} chars, History: ${testHistory.size} builds, Commit: ${commitDiff.length} chars")
+
+            // Run prediction with real data
             val (riskPercentage, confidence) = failurePredictionModel.predictFailure(
                 commitDiff, testHistory, logs
             )
@@ -439,6 +498,11 @@ class PipelineRepository(
             val causalFactors = failurePredictionModel.identifyCausalFactors(
                 commitDiff, testHistory, logs
             )
+
+            Timber.i("🎯 Prediction result: ${riskPercentage.toInt()}% risk (${(confidence * 100).toInt()}% confidence)")
+            if (causalFactors.isNotEmpty()) {
+                Timber.d("Causal factors: ${causalFactors.joinToString(", ")}")
+            }
 
             // Update pipeline with prediction
             val updatedPipeline = pipeline.copy(
@@ -454,7 +518,7 @@ class PipelineRepository(
 
             updatedPipeline
         } catch (e: Exception) {
-            Timber.e(e, "Failed to predict failure")
+            Timber.e(e, "Failed to predict failure for pipeline: ${pipeline.id}")
             pipeline
         }
     }
@@ -462,5 +526,214 @@ class PipelineRepository(
     suspend fun cleanOldPipelines(daysToKeep: Int = 30) {
         val timestamp = System.currentTimeMillis() - (daysToKeep * 24 * 60 * 60 * 1000L)
         pipelineDao.deleteOldPipelines(timestamp)
+    }
+
+    /**
+     * Fetch build logs for a specific pipeline
+     */
+    suspend fun fetchBuildLogs(pipeline: Pipeline): Result<String> {
+        return try {
+            when (pipeline.provider) {
+                CIProvider.JENKINS -> fetchJenkinsBuildLogs(pipeline)
+                else -> Result.success("Logs not yet implemented for ${pipeline.provider}")
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch build logs for pipeline: ${pipeline.id}")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Fetch Jenkins build logs
+     */
+    private suspend fun fetchJenkinsBuildLogs(pipeline: Pipeline): Result<String> {
+        return try {
+            val account = accountRepository.getAccountById(pipeline.accountId)
+                ?: return Result.failure(Exception("Account not found"))
+
+            val token = accountRepository.getAccountToken(pipeline.accountId)
+                ?: return Result.failure(Exception("Token not found"))
+
+            // Create dynamic Jenkins service with account credentials
+            val jenkinsServiceDynamic = createJenkinsService(account.baseUrl, token)
+
+            // Extract job name from repository name
+            val jobName = pipeline.repositoryName
+            val buildNumber = pipeline.buildNumber
+
+            Timber.d("Fetching logs for Jenkins job: $jobName #$buildNumber")
+            Timber.d("Jenkins URL: ${account.baseUrl}")
+
+            try {
+                val response = jenkinsServiceDynamic.getBuildLog(jobName, buildNumber)
+
+                Timber.d("Log fetch response: code=${response.code()}, isSuccessful=${response.isSuccessful}")
+
+                if (response.isSuccessful && response.body() != null) {
+                    val logs = response.body()!!
+                    Timber.d("Successfully fetched ${logs.length} characters of logs")
+                    Result.success(logs)
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    val errorMsg =
+                        "Failed to fetch logs: ${response.code()} - ${response.message()}"
+                    Timber.w("$errorMsg, errorBody: $errorBody")
+                    Result.failure(Exception(errorMsg))
+                }
+            } catch (e: java.net.SocketTimeoutException) {
+                val errorMsg =
+                    "Timeout fetching logs (> 120s). Log file might be too large or network is slow."
+                Timber.e(e, errorMsg)
+                Result.failure(Exception(errorMsg))
+            } catch (e: java.io.IOException) {
+                val errorMsg = "Network error fetching logs: ${e.message}"
+                Timber.e(e, errorMsg)
+                Result.failure(Exception(errorMsg))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Error fetching Jenkins build logs")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get artifacts for a pipeline
+     */
+    suspend fun getArtifacts(pipeline: Pipeline): Result<List<BuildArtifact>> {
+        return try {
+            val account = accountRepository.getAccountById(pipeline.accountId)
+                ?: return Result.failure(Exception("Account not found"))
+
+            val token = accountRepository.getAccountToken(pipeline.accountId)
+                ?: return Result.failure(Exception("Token not found"))
+
+            when (pipeline.provider) {
+                CIProvider.GITHUB_ACTIONS -> fetchGitHubArtifacts(pipeline, token)
+                CIProvider.JENKINS -> fetchJenkinsArtifacts(pipeline, token)
+                CIProvider.GITLAB_CI -> fetchGitLabArtifacts(pipeline, token)
+                CIProvider.CIRCLE_CI -> fetchCircleCIArtifacts(pipeline, token)
+                CIProvider.AZURE_DEVOPS -> fetchAzureDevOpsArtifacts(pipeline, token)
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch artifacts")
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Download artifact to file
+     */
+    suspend fun downloadArtifact(
+        artifact: BuildArtifact,
+        destination: File
+    ): Result<File> = withContext(Dispatchers.IO) {
+        try {
+            val response = gitHubService.downloadArtifact(artifact.downloadUrl)
+
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!.byteStream().use { input ->
+                    destination.outputStream().use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Timber.d("Downloaded artifact to: ${destination.absolutePath}")
+                Result.success(destination)
+            } else {
+                Result.failure(Exception("Download failed: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Artifact download failed")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fetchGitHubArtifacts(
+        pipeline: Pipeline,
+        token: String
+    ): Result<List<BuildArtifact>> {
+        return try {
+            val parts = pipeline.repositoryUrl.split("/")
+            val owner = parts.getOrNull(parts.size - 2) ?: return Result.success(emptyList())
+            val repo = parts.getOrNull(parts.size - 1) ?: return Result.success(emptyList())
+
+            val response = gitHubService.getArtifacts(owner, repo, pipeline.id.toLong())
+
+            if (response.isSuccessful && response.body() != null) {
+                val artifacts = response.body()!!.artifacts.map { artifact ->
+                    BuildArtifact(
+                        id = artifact.id.toString(),
+                        name = artifact.name,
+                        size = artifact.sizeInBytes,
+                        downloadUrl = artifact.archiveDownloadUrl,
+                        contentType = "application/zip",
+                        createdAt = parseDate(artifact.createdAt)
+                    )
+                }
+                Timber.d("Fetched ${artifacts.size} artifacts for pipeline ${pipeline.id}")
+                Result.success(artifacts)
+            } else {
+                Result.failure(Exception("Failed to fetch artifacts: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch GitHub artifacts")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fetchJenkinsArtifacts(
+        pipeline: Pipeline,
+        token: String
+    ): Result<List<BuildArtifact>> {
+        return try {
+            // Jenkins artifacts would be fetched from /job/{name}/{build}/api/json
+            // For now, return empty list as placeholder
+            Timber.d("Jenkins artifacts not yet implemented")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch Jenkins artifacts")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fetchGitLabArtifacts(
+        pipeline: Pipeline,
+        token: String
+    ): Result<List<BuildArtifact>> {
+        return try {
+            // GitLab artifacts endpoint: /projects/{id}/jobs/{job_id}/artifacts
+            Timber.d("GitLab artifacts not yet implemented")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch GitLab artifacts")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fetchCircleCIArtifacts(
+        pipeline: Pipeline,
+        token: String
+    ): Result<List<BuildArtifact>> {
+        return try {
+            // CircleCI artifacts endpoint
+            Timber.d("CircleCI artifacts not yet implemented")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch CircleCI artifacts")
+            Result.failure(e)
+        }
+    }
+
+    private suspend fun fetchAzureDevOpsArtifacts(
+        pipeline: Pipeline,
+        token: String
+    ): Result<List<BuildArtifact>> {
+        return try {
+            // Azure DevOps artifacts endpoint
+            Timber.d("Azure DevOps artifacts not yet implemented")
+            Result.success(emptyList())
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to fetch Azure DevOps artifacts")
+            Result.failure(e)
+        }
     }
 }

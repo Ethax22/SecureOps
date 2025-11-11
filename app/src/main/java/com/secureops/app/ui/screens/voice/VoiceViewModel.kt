@@ -10,6 +10,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.secureops.app.ml.voice.VoiceActionExecutor
+import com.secureops.app.data.repository.VoiceMessageRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +20,8 @@ import timber.log.Timber
 
 class VoiceViewModel(
     application: Application,
-    private val voiceActionExecutor: VoiceActionExecutor
+    private val voiceActionExecutor: VoiceActionExecutor,
+    private val voiceMessageRepository: VoiceMessageRepository
 ) : AndroidViewModel(application) {
     private val _uiState = MutableStateFlow(VoiceUiState())
     val uiState: StateFlow<VoiceUiState> = _uiState.asStateFlow()
@@ -34,6 +36,20 @@ class VoiceViewModel(
 
     init {
         initializeSpeechRecognizer()
+        loadMessages()
+    }
+
+    private fun loadMessages() {
+        viewModelScope.launch {
+            try {
+                voiceMessageRepository.getAllMessages().collect { messages ->
+                    _uiState.value = _uiState.value.copy(messages = messages)
+                    Timber.d("Loaded ${messages.size} voice messages from database")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to load voice messages")
+            }
+        }
     }
 
     private fun initializeSpeechRecognizer() {
@@ -174,6 +190,9 @@ class VoiceViewModel(
     }
 
     private fun addMessage(message: VoiceMessage) {
+        viewModelScope.launch {
+            voiceMessageRepository.saveMessage(message)
+        }
         _uiState.value = _uiState.value.copy(
             messages = _uiState.value.messages + message,
             errorMessage = null

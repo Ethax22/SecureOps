@@ -22,29 +22,43 @@ class AnalyticsRepository(
      */
     suspend fun getFailureTrends(timeRange: TimeRange): TrendData {
         val startTime = getStartTimeForRange(timeRange)
-        val pipelines = pipelineDao.getAllPipelines().first()
+        val allPipelines = pipelineDao.getAllPipelines().first()
             .map { it.toDomain() }
-            .filter { (it.startedAt ?: 0) >= startTime }
 
-        // Group by day and calculate failure rate
-        val dailyData = pipelines
-            .groupBy { getDayKey(it.startedAt ?: 0) }
-            .mapValues { entry ->
-                val total = entry.value.size
-                val failed = entry.value.count { it.status == BuildStatus.FAILURE }
-                DailyMetric(
-                    date = entry.key,
-                    total = total,
-                    failed = failed,
-                    failureRate = if (total > 0) (failed.toFloat() / total * 100) else 0f
-                )
+        // Filter by time range, but for ALL_TIME show everything
+        val pipelines = if (timeRange == TimeRange.ALL_TIME) {
+            allPipelines
+        } else {
+            allPipelines.filter {
+                val pipelineTime = it.startedAt ?: it.finishedAt ?: System.currentTimeMillis()
+                pipelineTime >= startTime
             }
-            .values
-            .sortedBy { it.date }
+        }.sortedBy { it.buildNumber }  // Sort by build number instead of time
+
+        // Show each build individually with its actual status
+        val individualData = pipelines.mapIndexed { index, pipeline ->
+            // Use build number as the label
+            val label = "#${pipeline.buildNumber}"
+
+            // Show 100% for failure, 0% for success (so failures show as red spikes)
+            val failureRate = when (pipeline.status) {
+                BuildStatus.FAILURE -> 100f
+                BuildStatus.SUCCESS -> 0f
+                BuildStatus.RUNNING, BuildStatus.PENDING -> 50f  // Running/Pending at middle
+                else -> 0f
+            }
+
+            DailyMetric(
+                date = label,
+                total = 1,
+                failed = if (pipeline.status == BuildStatus.FAILURE) 1 else 0,
+                failureRate = failureRate
+            )
+        }
 
         return TrendData(
             timeRange = timeRange,
-            dailyMetrics = dailyData.toList(),
+            dailyMetrics = individualData,
             overallFailureRate = calculateOverallFailureRate(pipelines)
         )
     }

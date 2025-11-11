@@ -29,7 +29,9 @@ data class PipelineEntity(
     val predictionConfidence: Float?,
     val predictionFactors: String?,
     val predictionTimestamp: Long?,
-    val cachedAt: Long = System.currentTimeMillis()
+    val cachedAt: Long = System.currentTimeMillis(),
+    val logs: String? = null,  // Cached build logs
+    val logsCachedAt: Long? = null  // When logs were cached
 )
 
 fun PipelineEntity.toDomain(): Pipeline {
@@ -59,7 +61,9 @@ fun PipelineEntity.toDomain(): Pipeline {
         duration = duration,
         triggeredBy = triggeredBy,
         webUrl = webUrl,
-        failurePrediction = failurePrediction
+        failurePrediction = failurePrediction,
+        logs = logs,
+        logsCachedAt = logsCachedAt
     )
 }
 
@@ -83,5 +87,7 @@ fun Pipeline.toEntity(): PipelineEntity = PipelineEntity(
     predictionRisk = failurePrediction?.riskPercentage,
     predictionConfidence = failurePrediction?.confidence,
     predictionFactors = failurePrediction?.causalFactors?.joinToString("|"),
-    predictionTimestamp = failurePrediction?.predictedAt
+    predictionTimestamp = failurePrediction?.predictedAt,
+    logs = logs,
+    logsCachedAt = logsCachedAt
 )

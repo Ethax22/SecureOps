@@ -1,5 +1,6 @@
 package com.secureops.app
 
+import android.content.Context
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,9 +21,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            SecureOpsTheme {
-                SecureOpsApp()
-            }
+            SecureOpsApp()
         }
     }
 }
@@ -33,6 +32,11 @@ fun SecureOpsApp() {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
+
+    // Get dark mode preference from SharedPreferences
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val prefs = remember { context.getSharedPreferences("settings_prefs", Context.MODE_PRIVATE) }
+    var isDarkMode by remember { mutableStateOf(prefs.getBoolean("dark_mode_enabled", false)) }
 
     val bottomNavItems = listOf(
         BottomNavItem(
@@ -60,37 +64,43 @@ fun SecureOpsApp() {
     // Determine if we should show bottom navigation
     val showBottomBar = currentRoute in bottomNavItems.map { it.route }
 
-    Scaffold(
-        bottomBar = {
-            if (showBottomBar) {
-                NavigationBar {
-                    bottomNavItems.forEach { item ->
-                        NavigationBarItem(
-                            icon = { Icon(item.icon, contentDescription = item.label) },
-                            label = { Text(item.label) },
-                            selected = currentRoute == item.route,
-                            onClick = {
-                                if (currentRoute != item.route) {
-                                    navController.navigate(item.route) {
-                                        popUpTo(Screen.Dashboard.route) {
-                                            saveState = true
+    SecureOpsTheme(darkTheme = isDarkMode) {
+        Scaffold(
+            bottomBar = {
+                if (showBottomBar) {
+                    NavigationBar {
+                        bottomNavItems.forEach { item ->
+                            NavigationBarItem(
+                                icon = { Icon(item.icon, contentDescription = item.label) },
+                                label = { Text(item.label) },
+                                selected = currentRoute == item.route,
+                                onClick = {
+                                    if (currentRoute != item.route) {
+                                        navController.navigate(item.route) {
+                                            popUpTo(Screen.Dashboard.route) {
+                                                saveState = true
+                                            }
+                                            launchSingleTop = true
+                                            restoreState = true
                                         }
-                                        launchSingleTop = true
-                                        restoreState = true
                                     }
                                 }
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
-        }
-    ) { innerPadding ->
-        Box(modifier = Modifier.padding(innerPadding)) {
-            SecureOpsNavGraph(
-                navController = navController,
-                startDestination = Screen.Dashboard.route
-            )
+        ) { innerPadding ->
+            Box(modifier = Modifier.padding(innerPadding)) {
+                SecureOpsNavGraph(
+                    navController = navController,
+                    startDestination = Screen.Dashboard.route,
+                    onDarkModeChanged = { enabled ->
+                        isDarkMode = enabled
+                        prefs.edit().putBoolean("dark_mode_enabled", enabled).apply()
+                    }
+                )
+            }
         }
     }
 }

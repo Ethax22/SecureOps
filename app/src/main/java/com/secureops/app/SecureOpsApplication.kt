@@ -1,6 +1,8 @@
 package com.secureops.app
 
 import android.app.Application
+import androidx.work.*
+import com.secureops.app.data.worker.PipelineSyncWorker
 import com.secureops.app.di.appModule
 import com.secureops.app.di.networkModule
 import com.secureops.app.di.repositoryModule
@@ -18,6 +20,7 @@ import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
 import timber.log.Timber
+import java.util.concurrent.TimeUnit
 
 class SecureOpsApplication : Application() {
 
@@ -47,6 +50,9 @@ class SecureOpsApplication : Application() {
 
         // Initialize RunAnywhere SDK asynchronously following official documentation pattern
         initializeRunAnywhereSDK()
+        
+        // Initialize Background Sync
+        initializeBackgroundSync()
     }
 
     private fun initializeRunAnywhereSDK() {
@@ -111,6 +117,44 @@ class SecureOpsApplication : Application() {
             Timber.d("Registered 2 AI models")
         } catch (e: Exception) {
             Timber.e(e, "Failed to register models")
+        }
+    }
+
+    /**
+     * Initialize background pipeline sync with WorkManager
+     */
+    private fun initializeBackgroundSync() {
+        try {
+            // Configure WorkManager constraints
+            val constraints = Constraints.Builder()
+                .setRequiredNetworkType(NetworkType.CONNECTED) // Requires internet
+                .setRequiresBatteryNotLow(true) // Don't drain battery
+                .build()
+
+            // Create periodic work request (minimum 15 minutes)
+            val syncRequest = PeriodicWorkRequestBuilder<PipelineSyncWorker>(
+                repeatInterval = 15,
+                repeatIntervalTimeUnit = TimeUnit.MINUTES
+            )
+                .setConstraints(constraints)
+                .setBackoffCriteria(
+                    BackoffPolicy.EXPONENTIAL,
+                    WorkRequest.MIN_BACKOFF_MILLIS,
+                    TimeUnit.MILLISECONDS
+                )
+                .addTag("pipeline_sync")
+                .build()
+
+            // Schedule the work (replaces existing work with same name)
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                PipelineSyncWorker.WORK_NAME,
+                ExistingPeriodicWorkPolicy.KEEP, // Keep existing if already scheduled
+                syncRequest
+            )
+
+            Timber.i("✅ Background sync scheduled - runs every 15 minutes")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to schedule background sync")
         }
     }
 }

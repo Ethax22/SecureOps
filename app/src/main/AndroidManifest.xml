@@ -34,6 +34,25 @@
             </intent-filter>
         </activity>
 
+        <!-- OAuth Callback Activity -->
+        <activity
+            android:name=".ui.auth.OAuthCallbackActivity"
+            android:exported="true"
+            android:launchMode="singleTask">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- OAuth redirect URI -->
+                <data
+                    android:scheme="secureops"
+                    android:host="oauth"
+                    android:pathPrefix="/callback" />
+            </intent-filter>
+        </activity>
+
         <!-- Firebase Messaging Service -->
         <service
             android:name=".data.notification.SecureOpsMessagingService"
@@ -48,6 +67,16 @@
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"
             tools:node="merge" />
+
+        <!-- Remediation Action Receiver for notification buttons -->
+        <receiver
+            android:name=".data.notification.RemediationActionReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.secureops.app.APPROVE_REMEDIATION" />
+                <action android:name="com.secureops.app.DECLINE_REMEDIATION" />
+            </intent-filter>
+        </receiver>
 
         <!-- FileProvider for sharing files -->
         <provider

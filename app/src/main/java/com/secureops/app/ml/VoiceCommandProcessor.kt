@@ -29,7 +29,8 @@ class VoiceCommandProcessor {
     private fun detectIntent(text: String): CommandIntent {
         return when {
             // Query build status - Enhanced patterns
-            text.contains("status") && (text.contains("build") || text.contains("pipeline")) -> {
+            text.contains("status") -> {
+                // If "status" is mentioned, default to build status query
                 CommandIntent.QUERY_BUILD_STATUS
             }
             text.contains("how") && (text.contains("doing") || text.contains("is") || text.contains("are")) && 
@@ -41,6 +42,7 @@ class VoiceCommandProcessor {
             text.contains("what's running") || text.contains("what is running") -> CommandIntent.QUERY_BUILD_STATUS
             text.contains("current") && (text.contains("build") || text.contains("pipeline")) -> CommandIntent.QUERY_BUILD_STATUS
             text.contains("latest") && (text.contains("build") || text.contains("pipeline")) -> CommandIntent.QUERY_BUILD_STATUS
+            text.contains("check") && (text.contains("build") || text.contains("pipeline")) -> CommandIntent.QUERY_BUILD_STATUS
             
             // Explain failure - Enhanced patterns
             text.contains("why") && (text.contains("fail") || text.contains("broke") || text.contains("error")) -> {

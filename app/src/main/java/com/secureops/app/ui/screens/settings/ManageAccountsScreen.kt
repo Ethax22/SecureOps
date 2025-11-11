@@ -111,12 +111,7 @@ fun ManageAccountsScreen(
                                 onToggleStatus = { viewModel.toggleAccountStatus(account) },
                                 onDelete = { accountToDelete = account },
                                 onEdit = {
-                                    coroutineScope.launch {
-                                        snackbarHostState.showSnackbar(
-                                            message = "Edit functionality coming soon! For now, please delete and re-add the account to update it.",
-                                            duration = SnackbarDuration.Long
-                                        )
-                                    }
+                                    onNavigateToEditAccount(account.id)
                                 }
                             )
                         }

@@ -12,6 +12,8 @@ import com.secureops.app.ui.screens.analytics.AnalyticsScreen
 import com.secureops.app.ui.screens.settings.SettingsScreen
 import com.secureops.app.ui.screens.settings.AddAccountScreen
 import com.secureops.app.ui.screens.settings.ManageAccountsScreen
+import com.secureops.app.ui.screens.settings.EditAccountScreen
+import com.secureops.app.ui.screens.settings.NotificationSettingsScreen
 import com.secureops.app.ui.screens.voice.VoiceScreen
 import com.secureops.app.ui.screens.details.BuildDetailsScreen
 
@@ -21,6 +23,10 @@ sealed class Screen(val route: String) {
     object Settings : Screen("settings")
     object AddAccount : Screen("add_account")
     object ManageAccounts : Screen("manage_accounts")
+    object EditAccount : Screen("edit_account/{accountId}") {
+        fun createRoute(accountId: String) = "edit_account/$accountId"
+    }
+    object NotificationSettings : Screen("notification_settings")
     object Voice : Screen("voice")
     object AIModels : Screen("ai_models")
     object BuildDetails : Screen("build_details/{pipelineId}") {
@@ -31,7 +37,8 @@ sealed class Screen(val route: String) {
 @Composable
 fun SecureOpsNavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Dashboard.route
+    startDestination: String = Screen.Dashboard.route,
+    onDarkModeChanged: (Boolean) -> Unit = {}
 ) {
     NavHost(
         navController = navController,
@@ -59,7 +66,11 @@ fun SecureOpsNavGraph(
                 },
                 onNavigateToAIModels = {
                     navController.navigate(Screen.AIModels.route)
-                }
+                },
+                onNavigateToNotificationSettings = {
+                    navController.navigate(Screen.NotificationSettings.route)
+                },
+                onDarkModeChanged = onDarkModeChanged
             )
         }
 
@@ -80,7 +91,28 @@ fun SecureOpsNavGraph(
                     navController.navigate(Screen.AddAccount.route)
                 },
                 onNavigateToEditAccount = { accountId ->
-                    // Removed navigation to edit account
+                    navController.navigate(Screen.EditAccount.createRoute(accountId))
+                }
+            )
+        }
+
+        composable(
+            route = Screen.EditAccount.route,
+            arguments = listOf(
+                navArgument("accountId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getString("accountId") ?: ""
+            EditAccountScreen(
+                accountId = accountId,
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.NotificationSettings.route) {
+            NotificationSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

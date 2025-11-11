@@ -11,16 +11,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateToAddAccount: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
-    onNavigateToAIModels: () -> Unit = {}
+    onNavigateToAIModels: () -> Unit = {},
+    onNavigateToNotificationSettings: () -> Unit = {},
+    onDarkModeChanged: (Boolean) -> Unit = {},
+    viewModel: SettingsViewModel = viewModel()
 ) {
-    var darkModeEnabled by remember { mutableStateOf(false) }
-    var notificationsEnabled by remember { mutableStateOf(true) }
+    val darkModeEnabled by viewModel.isDarkModeEnabled.collectAsState()
+    val notificationsEnabled by viewModel.areNotificationsEnabled.collectAsState()
 
     Scaffold(
         topBar = {
@@ -96,7 +100,10 @@ fun SettingsScreen(
                     title = "Dark Mode",
                     subtitle = "Toggle dark theme",
                     checked = darkModeEnabled,
-                    onCheckedChange = { darkModeEnabled = it }
+                    onCheckedChange = { enabled ->
+                        viewModel.toggleDarkMode(enabled)
+                        onDarkModeChanged(enabled)
+                    }
                 )
             }
 
@@ -106,7 +113,7 @@ fun SettingsScreen(
                     title = "Notifications",
                     subtitle = "Receive build updates",
                     checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it }
+                    onCheckedChange = { viewModel.toggleNotifications(it) }
                 )
             }
 
@@ -115,7 +122,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Settings,
                     title = "Notification Settings",
                     subtitle = "Configure notification preferences",
-                    onClick = { }
+                    onClick = onNavigateToNotificationSettings
                 )
             }
 

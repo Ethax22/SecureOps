@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.data.repository.PipelineRepository
 import com.secureops.app.domain.model.Account
+import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.Pipeline
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -83,9 +84,48 @@ class DashboardViewModel(
 
             try {
                 val accounts = _uiState.value.accounts
+
+                // Get pipelines before sync to detect new builds
+                val pipelinesBefore = _uiState.value.pipelines
+                val previousPipelineMap = pipelinesBefore.associateBy(
+                    { it.id },
+                    { it.status }
+                )
+
+                // Sync all accounts
                 accounts.forEach { account ->
-                    pipelineRepository.syncPipelines(account.id)
+                    val result = pipelineRepository.syncPipelines(account.id)
+
+                    // Run predictions for new or RUNNING builds
+                    result.getOrNull()?.forEach { pipeline ->
+                        val previousStatus = previousPipelineMap[pipeline.id]
+                        val isNewPipeline = previousStatus == null
+                        val justStarted = previousStatus != null &&
+                                previousStatus != BuildStatus.RUNNING &&
+                                pipeline.status == BuildStatus.RUNNING
+
+                        // Predict when:
+                        // 1. Pipeline is NEW (first time we see it) - REGARDLESS of status
+                        // 2. Build just STARTED (status changed to RUNNING)
+                        if (isNewPipeline || justStarted) {
+                            try {
+                                val reason = when {
+                                    isNewPipeline -> "NEW BUILD DETECTED (Manual Refresh)"
+                                    justStarted -> "BUILD STARTED (Manual Refresh)"
+                                    else -> "UNKNOWN"
+                                }
+                                Timber.i("🎯 Triggering prediction: $reason - ${pipeline.repositoryName} #${pipeline.buildNumber} [${pipeline.status}]")
+                                pipelineRepository.predictFailure(pipeline)
+                            } catch (e: Exception) {
+                                Timber.e(
+                                    e,
+                                    "Failed to predict failure for pipeline: ${pipeline.id}"
+                                )
+                            }
+                        }
+                    }
                 }
+
                 _uiState.update {
                     it.copy(
                         isRefreshing = false,

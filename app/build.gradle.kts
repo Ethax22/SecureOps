@@ -117,6 +117,12 @@ dependencies {
     // Security
     implementation("androidx.security:security-crypto:1.1.0-alpha06")
 
+    // OAuth2 / Chrome Custom Tabs
+    implementation("androidx.browser:browser:1.7.0")
+
+    // Email (SMTP) - Using Apache Commons Email for Android compatibility
+    implementation("org.apache.commons:commons-email:1.5")
+
     // Firebase Cloud Messaging
     implementation(platform("com.google.firebase:firebase-bom:32.7.4"))
     implementation("com.google.firebase:firebase-messaging-ktx")
