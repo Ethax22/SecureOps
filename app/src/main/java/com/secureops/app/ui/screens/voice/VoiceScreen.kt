@@ -1,6 +1,7 @@
 package com.secureops.app.ui.screens.voice
 
 import android.Manifest
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -13,6 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -21,6 +25,10 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import com.secureops.app.ui.components.GlassCard
+import com.secureops.app.ui.components.GradientBackground
+import com.secureops.app.ui.components.NeonButton
+import com.secureops.app.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
@@ -41,162 +49,243 @@ fun VoiceScreen() {
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Voice Assistant") })
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (recordAudioPermission.status.isGranted) {
-                        if (uiState.isListening) {
-                            viewModel.stopListening()
-                        } else {
-                            viewModel.startListening()
-                        }
-                    } else {
-                        recordAudioPermission.launchPermissionRequest()
-                    }
-                },
-                containerColor = if (uiState.isListening)
-                    MaterialTheme.colorScheme.error
-                else
-                    MaterialTheme.colorScheme.primary
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = if (uiState.isListening) "Stop listening" else "Start listening"
+    GradientBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "Voice Assistant",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
                 )
-            }
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            // Show permission rationale if needed
-            if (!recordAudioPermission.status.isGranted && recordAudioPermission.status.shouldShowRationale) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
+            },
+            floatingActionButton = {
+                // Neon gradient FAB
+                FloatingActionButton(
+                    onClick = {
+                        if (recordAudioPermission.status.isGranted) {
+                            if (uiState.isListening) {
+                                viewModel.stopListening()
+                            } else {
+                                viewModel.startListening()
+                            }
+                        } else {
+                            recordAudioPermission.launchPermissionRequest()
+                        }
+                    },
+                    containerColor = Color.Transparent,
+                    elevation = FloatingActionButtonDefaults.elevation(
+                        defaultElevation = 8.dp,
+                        pressedElevation = 12.dp
                     )
                 ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp)
+                    Box(
+                        modifier = Modifier
+                            .size(56.dp)
+                            .background(
+                                brush = if (uiState.isListening) {
+                                    Brush.linearGradient(
+                                        colors = listOf(ErrorRed, Color(0xFFFF6B6B))
+                                    )
+                                } else {
+                                    Brush.linearGradient(
+                                        colors = listOf(GradientPurpleStart, GradientPurpleEnd)
+                                    )
+                                },
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                            .clip(RoundedCornerShape(16.dp)),
+                        contentAlignment = Alignment.Center
                     ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = if (uiState.isListening) "Stop listening" else "Start listening",
+                            tint = Color.White
+                        )
+                    }
+                }
+            }
+        ) { paddingValues ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                // Show permission rationale if needed
+                if (!recordAudioPermission.status.isGranted && recordAudioPermission.status.shouldShowRationale) {
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        contentPadding = PaddingValues(20.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = ErrorRed,
+                            modifier = Modifier.size(32.dp)
+                        )
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
                         Text(
                             text = "Microphone Permission Required",
                             style = MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onSurface
                         )
+
                         Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
                             text = "This feature requires microphone access to listen to your voice commands. Please grant the permission to use voice assistant.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Button(
-                            onClick = { recordAudioPermission.launchPermissionRequest() }
-                        ) {
-                            Text("Grant Permission")
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        NeonButton(
+                            text = "Grant Permission",
+                            onClick = { recordAudioPermission.launchPermissionRequest() },
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
+
+                // Messages
+                LazyColumn(
+                    state = listState,
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(uiState.messages) { message ->
+                        VoiceMessageBubble(message)
+                    }
+                }
+
+                // Error message
+                uiState.errorMessage?.let { errorMsg ->
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = "❌",
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = errorMsg,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = ErrorRed
+                            )
                         }
                     }
                 }
-            }
 
-            // Messages
-            LazyColumn(
-                state = listState,
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxWidth(),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(uiState.messages) { message ->
-                    VoiceMessageBubble(message)
+                // Listening indicator
+                if (uiState.isListening) {
+                    GlassCard(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        contentPadding = PaddingValues(16.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Animated pulsing circle
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(
+                                        brush = Brush.radialGradient(
+                                            colors = listOf(
+                                                PrimaryPurple,
+                                                PrimaryPurple.copy(alpha = 0.5f)
+                                            )
+                                        ),
+                                        shape = RoundedCornerShape(16.dp)
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(20.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color.White
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.width(12.dp))
+
+                            Text(
+                                text = uiState.listeningText ?: "Listening...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.Medium,
+                                color = PrimaryPurple
+                            )
+                        }
+                    }
                 }
-            }
 
-            // Error message
-            uiState.errorMessage?.let { errorMsg ->
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = errorMsg,
-                        modifier = Modifier.padding(12.dp),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer
-                    )
-                }
-            }
-
-            // Listening indicator
-            if (uiState.isListening) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    )
-                ) {
+                // Suggestions
+                if (!uiState.isListening) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalArrangement = Arrangement.Center,
-                        verticalAlignment = Alignment.CenterVertically
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            strokeWidth = 2.dp
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                if (recordAudioPermission.status.isGranted) {
+                                    viewModel.handleSuggestionClick("Check status")
+                                }
+                            },
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("💼")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Check status")
+                                }
+                            }
                         )
-                        Spacer(modifier = Modifier.width(12.dp))
-                        Text(
-                            text = uiState.listeningText ?: "Listening...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            fontWeight = FontWeight.Medium
+
+                        FilterChip(
+                            selected = false,
+                            onClick = {
+                                if (recordAudioPermission.status.isGranted) {
+                                    viewModel.handleSuggestionClick("Risky builds?")
+                                }
+                            },
+                            label = {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text("⚠️")
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text("Risky builds?")
+                                }
+                            }
                         )
                     }
                 }
-            }
-
-            // Suggestions
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                SuggestionChip(
-                    onClick = {
-                        if (recordAudioPermission.status.isGranted) {
-                            viewModel.handleSuggestionClick("Check status")
-                        }
-                    },
-                    label = { Text("Check status") }
-                )
-                SuggestionChip(
-                    onClick = {
-                        if (recordAudioPermission.status.isGranted) {
-                            viewModel.handleSuggestionClick("Risky builds?")
-                        }
-                    },
-                    label = { Text("Risky builds?") }
-                )
             }
         }
     }
@@ -210,36 +299,59 @@ fun VoiceMessageBubble(message: VoiceMessage) {
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = alignment
     ) {
-        Card(
+        GlassCard(
             shape = RoundedCornerShape(
-                topStart = 16.dp,
-                topEnd = 16.dp,
-                bottomStart = if (message.isUser) 16.dp else 4.dp,
-                bottomEnd = if (message.isUser) 4.dp else 16.dp
+                topStart = 20.dp,
+                topEnd = 20.dp,
+                bottomStart = if (message.isUser) 20.dp else 4.dp,
+                bottomEnd = if (message.isUser) 4.dp else 20.dp
             ),
-            colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.surfaceVariant
-            ),
-            modifier = Modifier.widthIn(max = 300.dp)
+            modifier = Modifier.widthIn(max = 300.dp),
+            contentPadding = PaddingValues(16.dp)
         ) {
-            Column(
-                modifier = Modifier.padding(12.dp)
+            // Avatar/Icon indicator
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .clip(RoundedCornerShape(6.dp))
+                        .background(
+                            if (message.isUser) {
+                                Brush.linearGradient(
+                                    colors = listOf(AccentPink, PrimaryPurple)
+                                )
+                            } else {
+                                Brush.linearGradient(
+                                    colors = listOf(AccentCyan, AccentGreen)
+                                )
+                            }
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = if (message.isUser) "👤" else "🤖",
+                        style = MaterialTheme.typography.labelSmall
+                    )
+                }
+
                 Text(
                     text = message.sender,
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelMedium,
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium
+                    color = if (message.isUser) AccentPink else AccentCyan
                 )
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = message.content,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
         }
     }
 }

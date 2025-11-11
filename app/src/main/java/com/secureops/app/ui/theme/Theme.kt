@@ -17,37 +17,73 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 private val DarkColorScheme = darkColorScheme(
-    primary = PrimaryBlue,
+    primary = PrimaryPurple,
     onPrimary = Color.White,
-    primaryContainer = PrimaryBlueDark,
-    secondary = SecondaryTeal,
+    primaryContainer = PrimaryPurpleDark,
+    onPrimaryContainer = PrimaryPurpleLight,
+
+    secondary = AccentCyan,
     onSecondary = Color.White,
-    secondaryContainer = SecondaryTealDark,
+    secondaryContainer = AccentViolet,
+    onSecondaryContainer = AccentPink,
+
+    tertiary = AccentPink,
+    onTertiary = Color.White,
+    tertiaryContainer = AccentGreen,
+
     background = BackgroundDark,
-    surface = SurfaceDark,
-    error = ErrorRed,
     onBackground = TextPrimaryDark,
-    onSurface = TextPrimaryDark
+
+    surface = SurfaceDark,
+    onSurface = TextPrimaryDark,
+    surfaceVariant = SurfaceDarkElevated,
+    onSurfaceVariant = TextSecondaryDark,
+
+    error = ErrorRed,
+    onError = Color.White,
+    errorContainer = ErrorRed.copy(alpha = 0.2f),
+    onErrorContainer = ErrorRed,
+
+    outline = GlassBorderDark,
+    outlineVariant = Color.White.copy(alpha = 0.1f)
 )
 
 private val LightColorScheme = lightColorScheme(
-    primary = PrimaryBlue,
+    primary = PrimaryPurple,
     onPrimary = Color.White,
-    primaryContainer = PrimaryBlueDark,
-    secondary = SecondaryTeal,
+    primaryContainer = PrimaryPurpleLight,
+    onPrimaryContainer = PrimaryPurpleDark,
+
+    secondary = AccentCyan,
     onSecondary = Color.White,
-    secondaryContainer = SecondaryTealDark,
+    secondaryContainer = AccentViolet.copy(alpha = 0.2f),
+    onSecondaryContainer = AccentViolet,
+
+    tertiary = AccentPink,
+    onTertiary = Color.White,
+    tertiaryContainer = AccentPink.copy(alpha = 0.2f),
+
     background = BackgroundLight,
-    surface = SurfaceLight,
-    error = ErrorRed,
     onBackground = TextPrimary,
-    onSurface = TextPrimary
+
+    surface = SurfaceLight,
+    onSurface = TextPrimary,
+    surfaceVariant = SurfaceLightElevated,
+    onSurfaceVariant = TextSecondary,
+
+    error = ErrorRed,
+    onError = Color.White,
+    errorContainer = ErrorRed.copy(alpha = 0.1f),
+    onErrorContainer = ErrorRed,
+
+    outline = GlassBorderLight,
+    outlineVariant = PrimaryPurple.copy(alpha = 0.2f)
 )
 
 @Composable
 fun SecureOpsTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
@@ -64,7 +100,8 @@ fun SecureOpsTheme(
     if (!view.isInEditMode) {
         SideEffect {
             val window = (view.context as Activity).window
-            window.statusBarColor = colorScheme.primary.toArgb()
+            window.statusBarColor =
+                if (darkTheme) BackgroundDark.toArgb() else PrimaryPurple.toArgb()
             WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = !darkTheme
         }
     }

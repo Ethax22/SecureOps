@@ -1,0 +1,27 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Background circle -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+
+    <!-- Shield shape -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,28 L34,36 L34,54 Q34,66 54,76 Q74,66 74,54 L74,36 Z" />
+
+    <!-- Lock icon inside shield -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,42 Q58,42 58,46 L58,48 L60,48 L60,56 L48,56 L48,48 L50,48 L50,46 Q50,42 54,42 M54,50 Q56,50 56,52 Q56,54 54,54 Q52,54 52,52 Q52,50 54,50" />
+
+    <!-- Gradient effect overlay -->
+    <path
+        android:fillColor="#EC4899"
+        android:fillAlpha="0.3"
+        android:pathData="M54,54m-50,0a50,50 0,1 1,100 0a50,50 0,1 1,-100 0" />
+</vector>

@@ -14,11 +14,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.secureops.app.domain.model.BuildStatus
 import com.secureops.app.domain.model.Pipeline
+import com.secureops.app.ui.components.GlassCard
+import com.secureops.app.ui.components.GradientBackground
+import com.secureops.app.ui.components.StatusBadge
+import com.secureops.app.ui.components.NeonChip
+import com.secureops.app.ui.components.GradientDivider
 import com.secureops.app.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
@@ -32,63 +38,83 @@ fun DashboardScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("SecureOps Dashboard") },
-                actions = {
-                    IconButton(onClick = { viewModel.refreshPipelines() }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                uiState.isLoading -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-
-                uiState.pipelines.isEmpty() -> {
-                    EmptyState(modifier = Modifier.align(Alignment.Center))
-                }
-
-                else -> {
-                    PipelineList(
-                        pipelines = uiState.pipelines,
-                        onPipelineClick = onNavigateToBuildDetails,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                }
-            }
-
-            if (uiState.isRefreshing) {
-                LinearProgressIndicator(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                )
-            }
-
-            uiState.error?.let { error ->
-                Snackbar(
-                    modifier = Modifier
-                        .padding(16.dp)
-                        .align(Alignment.BottomCenter),
-                    action = {
-                        TextButton(onClick = { viewModel.clearError() }) {
-                            Text("Dismiss")
+    GradientBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = {
+                        Text(
+                            "SecureOps Dashboard",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    actions = {
+                        IconButton(onClick = { viewModel.refreshPipelines() }) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = PrimaryPurple
+                            )
                         }
                     }
-                ) {
-                    Text(error)
+                )
+            }
+        ) { paddingValues ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.align(Alignment.Center),
+                            color = PrimaryPurple
+                        )
+                    }
+
+                    uiState.pipelines.isEmpty() -> {
+                        EmptyState(modifier = Modifier.align(Alignment.Center))
+                    }
+
+                    else -> {
+                        PipelineList(
+                            pipelines = uiState.pipelines,
+                            onPipelineClick = onNavigateToBuildDetails,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    }
+                }
+
+                if (uiState.isRefreshing) {
+                    LinearProgressIndicator(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .align(Alignment.TopCenter),
+                        color = PrimaryPurple
+                    )
+                }
+
+                uiState.error?.let { error ->
+                    Snackbar(
+                        modifier = Modifier
+                            .padding(16.dp)
+                            .align(Alignment.BottomCenter),
+                        containerColor = ErrorRed.copy(alpha = 0.9f),
+                        action = {
+                            TextButton(onClick = { viewModel.clearError() }) {
+                                Text("Dismiss", color = Color.White)
+                            }
+                        }
+                    ) {
+                        Text(error, color = Color.White)
+                    }
                 }
             }
         }
@@ -104,7 +130,7 @@ fun PipelineList(
     LazyColumn(
         modifier = modifier,
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Group by repository
         val groupedPipelines = pipelines.groupBy { it.repositoryName }
@@ -113,8 +139,9 @@ fun PipelineList(
             item {
                 Text(
                     text = repoName,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(vertical = 8.dp)
                 )
             }
@@ -135,270 +162,201 @@ fun PipelineCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(
-            defaultElevation = 4.dp,
-            pressedElevation = 8.dp
-        ),
-        colors = CardDefaults.cardColors(
-            containerColor = when (pipeline.status) {
-                BuildStatus.FAILURE -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.1f)
-                BuildStatus.SUCCESS -> MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.1f)
-                BuildStatus.RUNNING -> MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.1f)
-                else -> MaterialTheme.colorScheme.surfaceVariant
-            }
-        )
+    GlassCard(
+        onClick = onClick,
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(20.dp),
+        contentPadding = PaddingValues(20.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(20.dp)
+        // Header Row: Status Badge + Build Number + Risk Badge
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            // Header Row: Status Badge + Build Number + Risk Badge
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
             ) {
+                // Status Badge
+                StatusBadge(
+                    status = when (pipeline.status) {
+                        BuildStatus.SUCCESS -> "Success"
+                        BuildStatus.FAILURE -> "Failed"
+                        BuildStatus.RUNNING -> "Running"
+                        BuildStatus.QUEUED -> "Queued"
+                        BuildStatus.PENDING -> "Pending"
+                        BuildStatus.CANCELED -> "Canceled"
+                        else -> "Unknown"
+                    },
+                    color = when (pipeline.status) {
+                        BuildStatus.SUCCESS -> SuccessGreen
+                        BuildStatus.FAILURE -> ErrorRed
+                        BuildStatus.RUNNING -> InfoBlue
+                        BuildStatus.QUEUED, BuildStatus.PENDING -> WarningAmber
+                        else -> Color.Gray
+                    }
+                )
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                Text(
+                    text = "#${pipeline.buildNumber}",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Risk Prediction Badge
+            pipeline.failurePrediction?.let { prediction ->
+                if (prediction.riskPercentage > 50f) {
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = when {
+                            prediction.riskPercentage > 80f -> ErrorRed
+                            prediction.riskPercentage > 60f -> WarningAmber
+                            else -> InfoBlue
+                        }
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "⚠️",
+                                style = MaterialTheme.typography.labelMedium
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = "${prediction.riskPercentage.toInt()}%",
+                                style = MaterialTheme.typography.labelLarge,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
+                    }
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Branch and Provider Info
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Branch Chip
+            NeonChip(
+                text = pipeline.branch,
+                icon = "🌿",
+                color = AccentGreen
+            )
+
+            // Provider Badge
+            NeonChip(
+                text = when (pipeline.provider) {
+                    com.secureops.app.domain.model.CIProvider.JENKINS -> "Jenkins"
+                    com.secureops.app.domain.model.CIProvider.GITHUB_ACTIONS -> "GitHub"
+                    com.secureops.app.domain.model.CIProvider.GITLAB_CI -> "GitLab"
+                    com.secureops.app.domain.model.CIProvider.CIRCLE_CI -> "CircleCI"
+                    com.secureops.app.domain.model.CIProvider.AZURE_DEVOPS -> "Azure"
+                },
+                color = AccentCyan
+            )
+        }
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Commit Message
+        if (pipeline.commitMessage.isNotEmpty()) {
+            Text(
+                text = pipeline.commitMessage,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
+                maxLines = 2,
+                lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+        }
+
+        GradientDivider()
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        // Footer: Author, Timestamp, Duration
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Author
+            if (pipeline.commitAuthor.isNotEmpty()) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.weight(1f)
                 ) {
-                    // Enhanced Status Badge
-                    Surface(
-                        shape = RoundedCornerShape(8.dp),
-                        color = when (pipeline.status) {
-                            BuildStatus.SUCCESS -> SuccessGreen.copy(alpha = 0.15f)
-                            BuildStatus.FAILURE -> ErrorRed.copy(alpha = 0.15f)
-                            BuildStatus.RUNNING -> InfoBlue.copy(alpha = 0.15f)
-                            BuildStatus.QUEUED, BuildStatus.PENDING -> WarningYellow.copy(alpha = 0.15f)
-                            BuildStatus.CANCELED -> Color.Gray.copy(alpha = 0.15f)
-                            else -> Color.Gray.copy(alpha = 0.15f)
-                        },
-                        modifier = Modifier.padding(end = 8.dp)
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            StatusIndicator(
-                                status = pipeline.status,
-                                modifier = Modifier.size(10.dp)
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Text(
-                                text = when (pipeline.status) {
-                                    BuildStatus.SUCCESS -> "Success"
-                                    BuildStatus.FAILURE -> "Failed"
-                                    BuildStatus.RUNNING -> "Running"
-                                    BuildStatus.QUEUED -> "Queued"
-                                    BuildStatus.PENDING -> "Pending"
-                                    BuildStatus.CANCELED -> "Canceled"
-                                    else -> "Unknown"
-                                },
-                                style = MaterialTheme.typography.labelMedium,
-                                fontWeight = FontWeight.SemiBold,
-                                color = when (pipeline.status) {
-                                    BuildStatus.SUCCESS -> SuccessGreen
-                                    BuildStatus.FAILURE -> ErrorRed
-                                    BuildStatus.RUNNING -> InfoBlue
-                                    BuildStatus.QUEUED, BuildStatus.PENDING -> WarningYellow
-                                    else -> Color.Gray
-                                }
-                            )
-                        }
-                    }
-
-                    Text(
-                        text = "#${pipeline.buildNumber}",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "Author",
+                        tint = PrimaryPurple,
+                        modifier = Modifier.size(16.dp)
                     )
-                }
-
-                // Risk Prediction Badge
-                pipeline.failurePrediction?.let { prediction ->
-                    if (prediction.riskPercentage > 50f) {
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = when {
-                                prediction.riskPercentage > 80f -> ErrorRed
-                                prediction.riskPercentage > 60f -> WarningYellow
-                                else -> InfoBlue
-                            }
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "⚠️",
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                                Spacer(modifier = Modifier.width(4.dp))
-                                Text(
-                                    text = "${prediction.riskPercentage.toInt()}%",
-                                    style = MaterialTheme.typography.labelLarge,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color.White
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Branch and Provider Info
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Branch Icon + Name
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.3f)
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "🌿",
-                            style = MaterialTheme.typography.labelSmall
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = pipeline.branch,
-                            style = MaterialTheme.typography.labelMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Provider Badge
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.3f)
-                ) {
+                    Spacer(modifier = Modifier.width(6.dp))
                     Text(
-                        text = when (pipeline.provider) {
-                            com.secureops.app.domain.model.CIProvider.JENKINS -> "Jenkins"
-                            com.secureops.app.domain.model.CIProvider.GITHUB_ACTIONS -> "GitHub"
-                            com.secureops.app.domain.model.CIProvider.GITLAB_CI -> "GitLab"
-                            com.secureops.app.domain.model.CIProvider.CIRCLE_CI -> "CircleCI"
-                            com.secureops.app.domain.model.CIProvider.AZURE_DEVOPS -> "Azure"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
+                        text = pipeline.commitAuthor,
+                        style = MaterialTheme.typography.bodySmall,
                         fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onTertiaryContainer,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.width(8.dp))
 
-            // Commit Message (with better styling)
-            if (pipeline.commitMessage.isNotEmpty()) {
-                Text(
-                    text = pipeline.commitMessage,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.8f),
-                    maxLines = 2,
-                    lineHeight = MaterialTheme.typography.bodyMedium.lineHeight
-                )
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            Divider(
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
-                thickness = 1.dp
-            )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Footer: Author, Timestamp, Duration
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Author
-                if (pipeline.commitAuthor.isNotEmpty()) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Author",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = pipeline.commitAuthor,
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.width(8.dp))
-
-                // Duration
-                pipeline.duration?.let { duration ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AccessTime,
-                            contentDescription = "Duration",
-                            tint = MaterialTheme.colorScheme.secondary,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = formatDuration(duration),
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-
-            // Timestamp (if available)
-            pipeline.startedAt?.let { timestamp ->
-                Spacer(modifier = Modifier.height(8.dp))
+            // Duration
+            pipeline.duration?.let { duration ->
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Schedule,
-                        contentDescription = "Time",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                        modifier = Modifier.size(14.dp)
+                        imageVector = Icons.Default.AccessTime,
+                        contentDescription = "Duration",
+                        tint = AccentPink,
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
-                        text = formatTimestamp(timestamp),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        text = formatDuration(duration),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+            }
+        }
+
+        // Timestamp
+        pipeline.startedAt?.let { timestamp ->
+            Spacer(modifier = Modifier.height(8.dp))
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = "Time",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = formatTimestamp(timestamp),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
             }
         }
     }
@@ -410,7 +368,7 @@ fun StatusIndicator(status: BuildStatus, modifier: Modifier = Modifier) {
         BuildStatus.SUCCESS -> SuccessGreen
         BuildStatus.FAILURE -> ErrorRed
         BuildStatus.RUNNING -> InfoBlue
-        BuildStatus.QUEUED, BuildStatus.PENDING -> WarningYellow
+        BuildStatus.QUEUED, BuildStatus.PENDING -> WarningAmber
         BuildStatus.CANCELED -> Color.Gray
         else -> Color.Gray
     }
@@ -425,27 +383,55 @@ fun StatusIndicator(status: BuildStatus, modifier: Modifier = Modifier) {
 
 @Composable
 fun EmptyState(modifier: Modifier = Modifier) {
-    Column(
-        modifier = modifier.padding(32.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
+    GlassCard(
+        modifier = modifier
+            .padding(32.dp)
+            .fillMaxWidth(),
+        contentPadding = PaddingValues(32.dp)
     ) {
-        Icon(
-            imageVector = Icons.Default.CloudOff,
-            contentDescription = null,
-            modifier = Modifier.size(64.dp),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        Text(
-            text = "No pipelines yet",
-            style = MaterialTheme.typography.titleMedium
-        )
-        Spacer(modifier = Modifier.height(8.dp))
-        Text(
-            text = "Add an account to get started",
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Icon with gradient background
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(
+                        brush = Brush.linearGradient(
+                            colors = listOf(
+                                PrimaryPurple.copy(alpha = 0.3f),
+                                AccentPink.copy(alpha = 0.2f)
+                            )
+                        )
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloudOff,
+                    contentDescription = null,
+                    modifier = Modifier.size(40.dp),
+                    tint = PrimaryPurple
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Text(
+                text = "No pipelines yet",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "Add an account to get started",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
     }
 }
 

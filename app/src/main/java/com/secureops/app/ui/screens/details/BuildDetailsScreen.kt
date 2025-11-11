@@ -19,10 +19,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.secureops.app.ui.components.StreamingIndicator
-import com.secureops.app.ui.components.ArtifactsSection
+import com.secureops.app.ui.components.*
 import com.secureops.app.data.remote.LogEntry
 import com.secureops.app.data.remote.LogLevel
+import com.secureops.app.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,455 +51,426 @@ fun BuildDetailsScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Build Details") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
-
-            uiState.error != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Error loading build",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Text(
-                            text = uiState.error ?: "",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-
-            uiState.pipeline != null -> {
-                val pipeline = uiState.pipeline!!
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Build Information Card
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
+    GradientBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("Build Details") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { paddingValues ->
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Text(
-                                text = "Build Information",
-                                style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(text = "Pipeline: ${pipeline.repositoryName}")
-                            Text(text = "Build: #${pipeline.buildNumber}")
-                            Text(text = "Status: ${pipeline.status.name}")
-                            Text(text = "Branch: ${pipeline.branch}")
-                            if (pipeline.duration != null) {
-                                Text(text = "Duration: ${formatDuration(pipeline.duration)}")
-                            }
-                            if (pipeline.commitMessage.isNotEmpty()) {
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(text = "Commit: ${pipeline.commitMessage}")
-                                if (pipeline.commitAuthor.isNotEmpty()) {
-                                    Text(text = "Author: ${pipeline.commitAuthor}")
+                        AnimatedLoadingRings()
+                    }
+                }
+
+                uiState.error != null -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        GlassErrorState(
+                            error = uiState.error ?: "",
+                            onRetry = { viewModel.loadPipeline(pipelineId) },
+                            title = "Error loading build"
+                        )
+                    }
+                }
+
+                uiState.pipeline != null -> {
+                    val pipeline = uiState.pipeline!!
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        item {
+                            AnimatedCardEntrance {
+                                // Build Information Card
+                                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = "Build Information",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    InfoRow("Pipeline", pipeline.repositoryName)
+                                    InfoRow("Build", "#${pipeline.buildNumber}")
+
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = "Status: ",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        PulsingGlowBadge(
+                                            status = pipeline.status.name,
+                                            color = when (pipeline.status) {
+                                                com.secureops.app.domain.model.BuildStatus.SUCCESS -> SuccessGreen
+                                                com.secureops.app.domain.model.BuildStatus.FAILURE -> ErrorRed
+                                                com.secureops.app.domain.model.BuildStatus.RUNNING -> InfoBlue
+                                                else -> WarningAmber
+                                            }
+                                        )
+                                    }
+
+                                    Spacer(modifier = Modifier.height(4.dp))
+
+                                    NeonChip(
+                                        text = pipeline.branch,
+                                        icon = "🌿",
+                                        color = AccentCyan
+                                    )
+
+                                    if (pipeline.duration != null) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        InfoRow("Duration", formatDuration(pipeline.duration))
+                                    }
+                                    if (pipeline.commitMessage.isNotEmpty()) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        GradientDivider()
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        InfoRow("Commit", pipeline.commitMessage)
+                                        if (pipeline.commitAuthor.isNotEmpty()) {
+                                            InfoRow("Author", pipeline.commitAuthor)
+                                        }
+                                    }
                                 }
                             }
                         }
-                    }
 
-                    // Root Cause Analysis
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = when (pipeline.status) {
-                                com.secureops.app.domain.model.BuildStatus.FAILURE ->
-                                    MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
-
-                                com.secureops.app.domain.model.BuildStatus.SUCCESS ->
-                                    MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-
-                                else -> MaterialTheme.colorScheme.surfaceVariant
-                            }
-                        )
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = when (pipeline.status) {
-                                        com.secureops.app.domain.model.BuildStatus.FAILURE -> Icons.Default.Error
-                                        com.secureops.app.domain.model.BuildStatus.SUCCESS -> Icons.Default.CheckCircle
-                                        else -> Icons.Default.Warning
-                                    },
-                                    contentDescription = null,
-                                    tint = when (pipeline.status) {
-                                        com.secureops.app.domain.model.BuildStatus.FAILURE ->
-                                            MaterialTheme.colorScheme.error
-
-                                        com.secureops.app.domain.model.BuildStatus.SUCCESS ->
-                                            MaterialTheme.colorScheme.primary
-
-                                        else -> MaterialTheme.colorScheme.onSurfaceVariant
-                                    },
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "Root Cause Analysis",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-
-                            // Analyze logs if we have them and build failed
-                            if (pipeline.status == com.secureops.app.domain.model.BuildStatus.FAILURE) {
-                                val rootCauseInfo = analyzeFailureLogs(uiState.logs)
-
-                                if (rootCauseInfo.isNotEmpty()) {
-                                    // Show extracted error information
-                                    rootCauseInfo.forEach { (title, content) ->
-                                        Text(
-                                            text = title,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        item {
+                            AnimatedCardEntrance(delayMillis = 100) {
+                                // Root Cause Analysis
+                                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = when (pipeline.status) {
+                                                com.secureops.app.domain.model.BuildStatus.FAILURE -> Icons.Default.Error
+                                                com.secureops.app.domain.model.BuildStatus.SUCCESS -> Icons.Default.CheckCircle
+                                                else -> Icons.Default.Warning
+                                            },
+                                            contentDescription = null,
+                                            tint = when (pipeline.status) {
+                                                com.secureops.app.domain.model.BuildStatus.FAILURE -> ErrorRed
+                                                com.secureops.app.domain.model.BuildStatus.SUCCESS -> SuccessGreen
+                                                else -> WarningAmber
+                                            },
+                                            modifier = Modifier.size(24.dp)
                                         )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        Surface(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            color = MaterialTheme.colorScheme.surface,
-                                            shape = RoundedCornerShape(8.dp)
-                                        ) {
-                                            Text(
-                                                text = content,
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                modifier = Modifier.padding(12.dp)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Text(
+                                            text = "Root Cause Analysis",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
                                     }
+                                    Spacer(modifier = Modifier.height(16.dp))
 
-                                    // Suggested actions
-                                    val suggestions = generateSuggestions(uiState.logs)
-                                    if (suggestions.isNotEmpty()) {
-                                        Text(
-                                            text = "Suggested Actions:",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            fontWeight = FontWeight.Bold,
-                                            color = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        suggestions.forEach { suggestion ->
-                                            Row(
-                                                modifier = Modifier.padding(vertical = 2.dp)
-                                            ) {
+                                    // Analyze logs if we have them and build failed
+                                    if (pipeline.status == com.secureops.app.domain.model.BuildStatus.FAILURE) {
+                                        val rootCauseInfo = analyzeFailureLogs(uiState.logs)
+
+                                        if (rootCauseInfo.isNotEmpty()) {
+                                            rootCauseInfo.forEach { (title, content) ->
                                                 Text(
-                                                    text = "• ",
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    text = title,
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = ErrorRed
                                                 )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                GlassCard(
+                                                    modifier = Modifier.fillMaxWidth(),
+                                                    shape = RoundedCornerShape(12.dp)
+                                                ) {
+                                                    Text(
+                                                        text = content,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                                Spacer(modifier = Modifier.height(12.dp))
+                                            }
+
+                                            val suggestions = generateSuggestions(uiState.logs)
+                                            if (suggestions.isNotEmpty()) {
                                                 Text(
-                                                    text = suggestion,
-                                                    style = MaterialTheme.typography.bodySmall
+                                                    text = "💡 Suggested Actions:",
+                                                    style = MaterialTheme.typography.labelMedium,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = AccentCyan
+                                                )
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                suggestions.forEach { suggestion ->
+                                                    Row(
+                                                        modifier = Modifier.padding(vertical = 4.dp)
+                                                    ) {
+                                                        Text(
+                                                            text = "• ",
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = AccentCyan
+                                                        )
+                                                        Text(
+                                                            text = suggestion,
+                                                            style = MaterialTheme.typography.bodyMedium,
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        } else if (uiState.logs != null) {
+                                            Text(
+                                                text = "Build failed but no specific error patterns were detected. Review the full logs below for details.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        } else {
+                                            if (uiState.isLoadingLogs) {
+                                                InlineLoading(message = "Analyzing logs...")
+                                            } else {
+                                                Text(
+                                                    text = "Load logs to see detailed error analysis",
+                                                    style = MaterialTheme.typography.bodyMedium,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                                 )
                                             }
                                         }
-                                    }
-                                } else if (uiState.logs != null) {
-                                    // We have logs but couldn't extract specific errors
-                                    Text(
-                                        text = "Build failed but no specific error patterns were detected. Review the full logs below for details.",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    // Logs are loading or unavailable
-                                    Text(
-                                        text = if (uiState.isLoadingLogs)
-                                            "Analyzing logs..."
-                                        else
-                                            "Load logs to see detailed error analysis",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            } else if (pipeline.status == com.secureops.app.domain.model.BuildStatus.SUCCESS) {
-                                Text(
-                                    text = "Build completed successfully! All checks passed.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            } else {
-                                Text(
-                                    text = "Build is ${pipeline.status.name.lowercase()}. Status will update when complete.",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-
-                            // Show ML prediction if available
-                            pipeline.failurePrediction?.let { prediction ->
-                                if (prediction.riskPercentage > 50f) {
-                                    Spacer(modifier = Modifier.height(12.dp))
-                                    Divider()
-                                    Spacer(modifier = Modifier.height(12.dp))
-
-                                    Text(
-                                        text = "AI Risk Assessment",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.error
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "Risk Level: ${prediction.riskPercentage.toInt()}%",
-                                        style = MaterialTheme.typography.bodyMedium
-                                    )
-                                    if (prediction.causalFactors.isNotEmpty()) {
-                                        Spacer(modifier = Modifier.height(4.dp))
-                                        prediction.causalFactors.take(3).forEach { factor ->
+                                    } else if (pipeline.status == com.secureops.app.domain.model.BuildStatus.SUCCESS) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
-                                                text = "• $factor",
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                text = "✅ ",
+                                                style = MaterialTheme.typography.titleMedium
                                             )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    // Logs Section
-                    Card(
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Text(
-                                    text = "Build Logs",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    fontWeight = FontWeight.Bold
-                                )
-
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    if (uiState.isStreaming) {
-                                        StreamingIndicator()
-                                    }
-
-                                    // Stream toggle button for running builds
-                                    if (pipeline.status == com.secureops.app.domain.model.BuildStatus.RUNNING) {
-                                        Button(
-                                            onClick = {
-                                                if (uiState.isStreaming) {
-                                                    viewModel.stopLogStreaming()
-                                                } else {
-                                                    viewModel.startLogStreaming()
-                                                }
-                                            },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = if (uiState.isStreaming)
-                                                    MaterialTheme.colorScheme.errorContainer
-                                                else
-                                                    MaterialTheme.colorScheme.primaryContainer,
-                                                contentColor = if (uiState.isStreaming)
-                                                    MaterialTheme.colorScheme.onErrorContainer
-                                                else
-                                                    MaterialTheme.colorScheme.onPrimaryContainer
-                                            ),
-                                            modifier = Modifier.height(36.dp)
-                                        ) {
                                             Text(
-                                                text = if (uiState.isStreaming) "Stop Live" else "Stream Live",
-                                                style = MaterialTheme.typography.labelMedium
+                                                text = "Build completed successfully! All checks passed.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = SuccessGreen
                                             )
                                         }
                                     } else {
-                                        if (uiState.isLoadingLogs) {
-                                            CircularProgressIndicator(
-                                                modifier = Modifier.size(20.dp),
-                                                strokeWidth = 2.dp
+                                        Text(
+                                            text = "Build is ${pipeline.status.name.lowercase()}. Status will update when complete.",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+
+                                    // Show ML prediction if available
+                                    pipeline.failurePrediction?.let { prediction ->
+                                        if (prediction.riskPercentage > 50f) {
+                                            Spacer(modifier = Modifier.height(16.dp))
+                                            GradientDivider()
+                                            Spacer(modifier = Modifier.height(16.dp))
+
+                                            Text(
+                                                text = "🤖 AI Risk Assessment",
+                                                style = MaterialTheme.typography.labelMedium,
+                                                fontWeight = FontWeight.Bold,
+                                                color = AccentPink
                                             )
-                                        } else if (uiState.logsError != null) {
-                                            TextButton(onClick = { viewModel.fetchLogs() }) {
-                                                Text("Retry")
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                            NeonChip(
+                                                text = "Risk Level: ${prediction.riskPercentage.toInt()}%",
+                                                color = ErrorRed
+                                            )
+                                            if (prediction.causalFactors.isNotEmpty()) {
+                                                Spacer(modifier = Modifier.height(8.dp))
+                                                prediction.causalFactors.take(3).forEach { factor ->
+                                                    Text(
+                                                        text = "• $factor",
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
                                             }
                                         }
                                     }
                                 }
                             }
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .heightIn(min = 100.dp, max = 400.dp),
-                                color = MaterialTheme.colorScheme.surfaceVariant,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                // Show streaming logs if active
-                                if (uiState.isStreaming && uiState.streamingLogs.isNotEmpty()) {
-                                    LazyColumn(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .padding(12.dp)
+                        }
+
+                        item {
+                            AnimatedCardEntrance(delayMillis = 200) {
+                                // Logs Section
+                                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        items(uiState.streamingLogs) { logEntry ->
-                                            LogEntryItem(logEntry)
-                                        }
-                                    }
-                                } else if (uiState.logs != null) {
-                                    // Display cached logs
-                                    val scrollState = rememberScrollState()
-                                    Text(
-                                        text = uiState.logs ?: "No logs available",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        fontFamily = FontFamily.Monospace,
-                                        modifier = Modifier
-                                            .padding(12.dp)
-                                            .verticalScroll(scrollState)
-                                    )
-                                } else if (uiState.isLoadingLogs) {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Column(
-                                            horizontalAlignment = Alignment.CenterHorizontally
+                                        Text(
+                                            text = "📋 Build Logs",
+                                            style = MaterialTheme.typography.titleMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurface
+                                        )
+
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
                                         ) {
-                                            CircularProgressIndicator()
-                                            Spacer(modifier = Modifier.height(8.dp))
-                                            Text(
-                                                "Loading logs...",
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
+                                            if (uiState.isStreaming) {
+                                                StreamingIndicator()
+                                            }
+
+                                            // Stream toggle button for running builds
+                                            if (pipeline.status == com.secureops.app.domain.model.BuildStatus.RUNNING) {
+                                                NeonButton(
+                                                    text = if (uiState.isStreaming) "Stop Live" else "Stream Live",
+                                                    onClick = {
+                                                        if (uiState.isStreaming) {
+                                                            viewModel.stopLogStreaming()
+                                                        } else {
+                                                            viewModel.startLogStreaming()
+                                                        }
+                                                    },
+                                                    modifier = Modifier.height(36.dp)
+                                                )
+                                            } else {
+                                                if (uiState.isLoadingLogs) {
+                                                    AnimatedLoadingRings(modifier = Modifier.size(24.dp))
+                                                } else if (uiState.logsError != null) {
+                                                    TextButton(onClick = { viewModel.fetchLogs() }) {
+                                                        Text("Retry", color = AccentCyan)
+                                                    }
+                                                }
+                                            }
                                         }
                                     }
-                                } else {
-                                    Box(
-                                        modifier = Modifier.fillMaxSize(),
-                                        contentAlignment = Alignment.Center
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    GlassCard(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .heightIn(min = 100.dp, max = 400.dp),
+                                        shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Text(
-                                            text = "Logs not loaded yet. Pull to refresh.",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            modifier = Modifier.padding(12.dp)
-                                        )
+                                        // Show streaming logs if active
+                                        if (uiState.isStreaming && uiState.streamingLogs.isNotEmpty()) {
+                                            LazyColumn(
+                                                modifier = Modifier.fillMaxSize()
+                                            ) {
+                                                items(uiState.streamingLogs) { logEntry ->
+                                                    LogEntryItem(logEntry)
+                                                }
+                                            }
+                                        } else if (uiState.logs != null) {
+                                            val scrollState = rememberScrollState()
+                                            Text(
+                                                text = uiState.logs ?: "No logs available",
+                                                style = MaterialTheme.typography.bodySmall.copy(
+                                                    fontFamily = FontFamily.Monospace
+                                                ),
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                modifier = Modifier.verticalScroll(scrollState)
+                                            )
+                                        } else if (uiState.isLoadingLogs) {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                InlineLoading(message = "Loading logs...")
+                                            }
+                                        } else {
+                                            Box(
+                                                modifier = Modifier.fillMaxSize(),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                Text(
+                                                    text = "Logs not loaded yet. Pull to refresh.",
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // Action Buttons
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        Button(
-                            onClick = { viewModel.rerunBuild() },
-                            modifier = Modifier.weight(1f),
-                            enabled = !uiState.isExecutingAction
-                        ) {
-                            if (uiState.isExecutingAction) {
-                                CircularProgressIndicator(
-                                    modifier = Modifier.size(20.dp),
-                                    strokeWidth = 2.dp,
-                                    color = MaterialTheme.colorScheme.onPrimary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                            }
-                            Text("Rerun")
-                        }
-                        OutlinedButton(
-                            onClick = { viewModel.cancelBuild() },
-                            modifier = Modifier.weight(1f),
-                            enabled = !uiState.isExecutingAction &&
-                                    pipeline.status == com.secureops.app.domain.model.BuildStatus.RUNNING
-                        ) {
-                            Text("Cancel")
-                        }
-                    }
-
-                    // Artifacts Section
-                    if (uiState.artifacts.isNotEmpty() || uiState.isLoadingArtifacts) {
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        if (uiState.isLoadingArtifacts) {
-                            Card(
-                                modifier = Modifier.fillMaxWidth(),
-                                shape = RoundedCornerShape(12.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    contentAlignment = Alignment.Center
+                        item {
+                            AnimatedCardEntrance(delayMillis = 300) {
+                                // Action Buttons
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Column(
-                                        horizontalAlignment = Alignment.CenterHorizontally
-                                    ) {
-                                        CircularProgressIndicator()
-                                        Spacer(modifier = Modifier.height(8.dp))
-                                        Text(
-                                            "Loading artifacts...",
-                                            style = MaterialTheme.typography.bodySmall
+                                    NeonButton(
+                                        text = "Rerun",
+                                        onClick = { viewModel.rerunBuild() },
+                                        modifier = Modifier.weight(1f),
+                                        enabled = !uiState.isExecutingAction
+                                    )
+
+                                    if (pipeline.status == com.secureops.app.domain.model.BuildStatus.RUNNING) {
+                                        NeonButton(
+                                            text = "Cancel",
+                                            onClick = { viewModel.cancelBuild() },
+                                            modifier = Modifier.weight(1f),
+                                            enabled = !uiState.isExecutingAction,
+                                            glowColor = ErrorRed
                                         )
                                     }
                                 }
                             }
-                        } else {
-                            ArtifactsSection(
-                                artifacts = uiState.artifacts,
-                                onDownloadArtifact = { artifact ->
-                                    viewModel.downloadArtifact(artifact)
+                        }
+
+                        // Artifacts Section
+                        if (uiState.artifacts.isNotEmpty() || uiState.isLoadingArtifacts) {
+                            item {
+                                AnimatedCardEntrance(delayMillis = 400) {
+                                    if (uiState.isLoadingArtifacts) {
+                                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .padding(32.dp),
+                                                contentAlignment = Alignment.Center
+                                            ) {
+                                                InlineLoading(message = "Loading artifacts...")
+                                            }
+                                        }
+                                    } else {
+                                        ArtifactsSection(
+                                            artifacts = uiState.artifacts,
+                                            onDownloadArtifact = { artifact ->
+                                                viewModel.downloadArtifact(artifact)
+                                            }
+                                        )
+                                    }
                                 }
-                            )
+                            }
                         }
                     }
                 }
@@ -511,8 +482,8 @@ fun BuildDetailsScreen(
 @Composable
 private fun LogEntryItem(logEntry: LogEntry) {
     val color = when (logEntry.level) {
-        LogLevel.ERROR -> Color(0xFFFF4444)
-        LogLevel.WARNING -> Color(0xFFFFAA00)
+        LogLevel.ERROR -> ErrorRed
+        LogLevel.WARNING -> WarningAmber
         LogLevel.INFO -> MaterialTheme.colorScheme.onSurface
         LogLevel.DEBUG -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -536,6 +507,27 @@ private fun formatDuration(millis: Long): String {
         hours > 0 -> "${hours}h ${minutes % 60}m"
         minutes > 0 -> "${minutes}m ${seconds % 60}s"
         else -> "${seconds}s"
+    }
+}
+
+@Composable
+private fun InfoRow(label: String, value: String) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 2.dp)
+    ) {
+        Text(
+            text = "$label: ",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            fontWeight = FontWeight.Medium
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface
+        )
     }
 }
 

@@ -14,8 +14,10 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.Path
@@ -27,6 +29,11 @@ import com.secureops.app.ui.screens.analytics.ExportStatus
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarDuration
+import com.secureops.app.ui.components.GlassCard
+import com.secureops.app.ui.components.GradientBackground
+import com.secureops.app.ui.components.NeonButton
+import com.secureops.app.ui.components.GradientDivider
+import com.secureops.app.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.max
 
@@ -69,120 +76,176 @@ fun AnalyticsScreen(
         viewModel.loadAnalytics(selectedTimeRange)
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Analytics") },
-                actions = {
-                    IconButton(onClick = { viewModel.loadAnalytics(selectedTimeRange) }) {
-                        Icon(Icons.Default.Refresh, contentDescription = "Refresh")
-                    }
-                    IconButton(
-                        onClick = { showExportDialog = true },
-                        enabled = exportStatus !is ExportStatus.Exporting
-                    ) {
-                        if (exportStatus is ExportStatus.Exporting) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(24.dp),
-                                strokeWidth = 2.dp
+    GradientBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { 
+                        Text(
+                            "Analytics",
+                            style = MaterialTheme.typography.headlineMedium,
+                            fontWeight = FontWeight.Bold
+                        )
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    ),
+                    actions = {
+                        IconButton(onClick = { viewModel.loadAnalytics(selectedTimeRange) }) {
+                            Icon(
+                                Icons.Default.Refresh,
+                                contentDescription = "Refresh",
+                                tint = PrimaryPurple
                             )
-                        } else {
-                            Icon(Icons.Default.Download, contentDescription = "Export")
+                        }
+                        IconButton(
+                            onClick = { showExportDialog = true },
+                            enabled = exportStatus !is ExportStatus.Exporting
+                        ) {
+                            if (exportStatus is ExportStatus.Exporting) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(24.dp),
+                                    strokeWidth = 2.dp,
+                                    color = PrimaryPurple
+                                )
+                            } else {
+                                Icon(
+                                    Icons.Default.Download,
+                                    contentDescription = "Export",
+                                    tint = AccentCyan
+                                )
+                            }
+                        }
+                    }
+                )
+            },
+            snackbarHost = { SnackbarHost(snackbarHostState) }
+        ) { paddingValues ->
+            when (val state = uiState) {
+                is AnalyticsUiState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = PrimaryPurple)
+                    }
+                }
+
+                is AnalyticsUiState.Success -> {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues)
+                            .padding(16.dp)
+                            .verticalScroll(rememberScrollState()),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Time Range Selector
+                        TimeRangeSelector(
+                            selectedRange = selectedTimeRange,
+                            onRangeSelected = { selectedTimeRange = it }
+                        )
+
+                        // Overview Stats
+                        OverviewStats(
+                            totalBuilds = state.totalBuilds,
+                            successRate = state.successRate,
+                            avgDuration = state.avgDuration,
+                            failedBuilds = state.failedBuilds
+                        )
+
+                        // Failure Trends Chart
+                        FailureTrendsChart(
+                            title = "Failure Rate Trends",
+                            data = state.trendData
+                        )
+
+                        // Common Failure Causes
+                        FailureCausesChart(
+                            title = "Top Failure Causes",
+                            causes = state.commonCauses
+                        )
+
+                        // Time to Fix Chart
+                        TimeToFixChart(
+                            title = "Average Time to Fix",
+                            data = state.timeToFixStats
+                        )
+
+                        // Repository Metrics
+                        RepositoryMetricsSection(
+                            repositories = state.repositoryMetrics
+                        )
+
+                        // High Risk Repositories
+                        if (state.highRiskRepos.isNotEmpty()) {
+                            HighRiskRepositories(
+                                repositories = state.highRiskRepos
+                            )
                         }
                     }
                 }
-            )
-        },
-        snackbarHost = { SnackbarHost(snackbarHostState) }
-    ) { paddingValues ->
-        when (val state = uiState) {
-            is AnalyticsUiState.Loading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator()
-                }
-            }
 
-            is AnalyticsUiState.Success -> {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                        .padding(16.dp)
-                        .verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    // Time Range Selector
-                    TimeRangeSelector(
-                        selectedRange = selectedTimeRange,
-                        onRangeSelected = { selectedTimeRange = it }
-                    )
-
-                    // Overview Stats
-                    OverviewStats(
-                        totalBuilds = state.totalBuilds,
-                        successRate = state.successRate,
-                        avgDuration = state.avgDuration,
-                        failedBuilds = state.failedBuilds
-                    )
-
-                    // Failure Trends Chart
-                    FailureTrendsChart(
-                        title = "Failure Rate Trends",
-                        data = state.trendData
-                    )
-
-                    // Common Failure Causes
-                    FailureCausesChart(
-                        title = "Top Failure Causes",
-                        causes = state.commonCauses
-                    )
-
-                    // Time to Fix Chart
-                    TimeToFixChart(
-                        title = "Average Time to Fix",
-                        data = state.timeToFixStats
-                    )
-
-                    // Repository Metrics
-                    RepositoryMetricsSection(
-                        repositories = state.repositoryMetrics
-                    )
-
-                    // High Risk Repositories
-                    if (state.highRiskRepos.isNotEmpty()) {
-                        HighRiskRepositories(
-                            repositories = state.highRiskRepos
-                        )
-                    }
-                }
-            }
-
-            is AnalyticsUiState.Error -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "Failed to load analytics",
-                            style = MaterialTheme.typography.titleMedium
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = state.message,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadAnalytics(selectedTimeRange) }) {
-                            Text("Retry")
+                is AnalyticsUiState.Error -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        GlassCard(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(32.dp),
+                            contentPadding = PaddingValues(32.dp)
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(64.dp)
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(
+                                            brush = Brush.linearGradient(
+                                                colors = listOf(
+                                                    ErrorRed.copy(alpha = 0.3f),
+                                                    ErrorRed.copy(alpha = 0.1f)
+                                                )
+                                            )
+                                        ),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("⚠️", style = MaterialTheme.typography.headlineLarge)
+                                }
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                Text(
+                                    text = "Failed to load analytics",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                
+                                Spacer(modifier = Modifier.height(8.dp))
+                                
+                                Text(
+                                    text = state.message,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = ErrorRed,
+                                    textAlign = TextAlign.Center
+                                )
+                                
+                                Spacer(modifier = Modifier.height(16.dp))
+                                
+                                NeonButton(
+                                    text = "Retry",
+                                    onClick = { viewModel.loadAnalytics(selectedTimeRange) },
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
                         }
                     }
                 }
@@ -206,14 +269,12 @@ fun TimeRangeSelector(
     selectedRange: TimeRange,
     onRangeSelected: (TimeRange) -> Unit
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        contentPadding = PaddingValues(12.dp)
     ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(8.dp),
+            modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             TimeRange.values().forEach { range ->
@@ -288,12 +349,12 @@ fun StatCard(
     modifier: Modifier = Modifier,
     color: Color? = null
 ) {
-    Card(
+    GlassCard(
         modifier = modifier,
-        shape = RoundedCornerShape(12.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(0.dp)
         ) {
             Text(
                 text = title,
@@ -316,16 +377,16 @@ fun FailureTrendsChart(
     title: String,
     data: List<Pair<String, Float>>
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp),
-        shape = RoundedCornerShape(12.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(0.dp)
         ) {
             Text(
                 text = title,
@@ -478,16 +539,16 @@ fun FailureCausesChart(
     title: String,
     causes: Map<String, Int>
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
             .height(300.dp),
-        shape = RoundedCornerShape(12.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(16.dp)
+                .padding(0.dp)
         ) {
             Text(
                 text = title,
@@ -522,8 +583,7 @@ fun FailureCausesChart(
                                 Text(
                                     text = cause,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.Medium,
-                                    modifier = Modifier.weight(1f)
+                                    fontWeight = FontWeight.Medium
                                 )
                                 Text(
                                     text = "$count",
@@ -558,12 +618,12 @@ fun TimeToFixChart(
     title: String,
     data: List<Triple<String, Int, Int>>
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(0.dp)
         ) {
             Text(
                 text = title,
@@ -607,12 +667,12 @@ fun TimeToFixChart(
 fun RepositoryMetricsSection(
     repositories: List<RepositoryMetricItem>
 ) {
-    Card(
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp)
+        contentPadding = PaddingValues(16.dp)
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(0.dp)
         ) {
             Text(
                 text = "Repository Metrics",
@@ -681,55 +741,75 @@ fun RepositoryMetricItem(item: RepositoryMetricItem) {
 fun HighRiskRepositories(
     repositories: List<RiskRepositoryItem>
 ) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.errorContainer
-        )
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp)
-        ) {
-            Text(
-                text = "⚠️ High Risk Repositories",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onErrorContainer
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(20.dp))
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        ErrorRed.copy(alpha = 0.2f),
+                        ErrorRed.copy(alpha = 0.1f)
+                    )
+                )
             )
-            Spacer(modifier = Modifier.height(12.dp))
-
-            repositories.forEach { repo ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 4.dp)
+    ) {
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(16.dp)
+        ) {
+            Column(
+                modifier = Modifier.padding(0.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(bottom = 12.dp)
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = repo.name,
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onErrorContainer
-                        )
-                        Text(
-                            text = "${String.format("%.1f", repo.failureRate)}% failed",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.error
-                        )
-                    }
                     Text(
-                        text = repo.recommendation,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer
+                        text = "⚠️",
+                        style = MaterialTheme.typography.headlineMedium
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "High Risk Repositories",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = ErrorRed
                     )
                 }
-                if (repo != repositories.last()) {
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+                repositories.forEach { repo ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp)
+                    ) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = repo.name,
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.Medium,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Text(
+                                text = "${String.format("%.1f", repo.failureRate)}% failed",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                color = ErrorRed
+                            )
+                        }
+                        Text(
+                            text = repo.recommendation,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    if (repo != repositories.last()) {
+                        GradientDivider(modifier = Modifier.padding(vertical = 8.dp))
+                    }
                 }
             }
         }

@@ -8,14 +8,21 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.Key
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.secureops.app.domain.model.CIProvider
+import com.secureops.app.ui.components.*
+import com.secureops.app.ui.theme.*
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -36,7 +43,6 @@ fun AddAccountScreen(
     // Handle OAuth token when received
     LaunchedEffect(uiState.oauthToken) {
         uiState.oauthToken?.let { oauthToken ->
-            // Auto-fill the token field with OAuth access token
             token = oauthToken.accessToken
         }
     }
@@ -48,242 +54,308 @@ fun AddAccountScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Add Account") },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .padding(16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            Text(
-                text = "Connect a CI/CD Provider",
-                style = MaterialTheme.typography.titleMedium
-            )
-
-            Text(
-                text = "Enter your CI/CD provider credentials to start monitoring pipelines.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // Provider Selection
-            OutlinedCard(
-                modifier = Modifier.fillMaxWidth(),
-                onClick = { showProviderDialog = true }
-            ) {
+    GradientBackground(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = Color.Transparent,
+            topBar = {
+                TopAppBar(
+                    title = { Text("Add Account") },
+                    navigationIcon = {
+                        IconButton(onClick = onNavigateBack) {
+                            Icon(Icons.Default.ArrowBack, "Back")
+                        }
+                    },
+                    colors = TopAppBarDefaults.topAppBarColors(
+                        containerColor = Color.Transparent,
+                        titleContentColor = MaterialTheme.colorScheme.onSurface
+                    )
+                )
+            }
+        ) { paddingValues ->
+            FadeInContent {
                 Column(
                     modifier = Modifier
-                        .fillMaxWidth()
+                        .fillMaxSize()
+                        .padding(paddingValues)
                         .padding(16.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Text(
-                        text = "CI/CD Provider",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = selectedProvider?.displayName ?: "Select a provider",
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
+                    AnimatedCardEntrance {
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Text(
+                                text = "🔗 Connect a CI/CD Provider",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
 
-            // Add OAuth button for supported providers
-            if (selectedProvider != null && supportsOAuth(selectedProvider)) {
-                Spacer(modifier = Modifier.height(8.dp))
+                            Spacer(modifier = Modifier.height(8.dp))
 
-                Button(
-                    onClick = {
-                        viewModel.startOAuthFlow(selectedProvider!!)
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                    ),
-                    enabled = !uiState.isLoading
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Login,
-                        contentDescription = null,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("Sign in with OAuth")
-                }
+                            Text(
+                                text = "Enter your CI/CD provider credentials to start monitoring pipelines.",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                    AnimatedCardEntrance(delayMillis = 100) {
+                        // Provider Selection
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth(),
+                            onClick = { showProviderDialog = true }
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .then(
+                                            Modifier.padding(end = 12.dp)
+                                        )
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Link,
+                                        contentDescription = null,
+                                        tint = PrimaryPurple,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                    Text(
-                        text = "OR",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 16.dp)
-                    )
-                    HorizontalDivider(modifier = Modifier.weight(1f))
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Account Name
-            OutlinedTextField(
-                value = accountName,
-                onValueChange = { accountName = it },
-                label = { Text("Account Name") },
-                placeholder = { Text("e.g., My GitHub Account") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
-
-            // Base URL (optional for some providers)
-            if (selectedProvider == CIProvider.JENKINS || 
-                selectedProvider == CIProvider.GITLAB_CI ||
-                selectedProvider == CIProvider.AZURE_DEVOPS) {
-                OutlinedTextField(
-                    value = baseUrl,
-                    onValueChange = { baseUrl = it },
-                    label = { Text("Base URL") },
-                    placeholder = { 
-                        Text(
-                            when (selectedProvider) {
-                                CIProvider.JENKINS -> "https://jenkins.example.com"
-                                CIProvider.GITLAB_CI -> "https://gitlab.com"
-                                CIProvider.AZURE_DEVOPS -> "https://dev.azure.com"
-                                else -> "https://example.com"
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "CI/CD Provider",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = PrimaryPurple,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = selectedProvider?.displayName
+                                            ?: "Tap to select a provider",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
                             }
-                        )
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
-                )
-            } else {
-                // Set default URLs for providers that don't need custom URLs
-                LaunchedEffect(selectedProvider) {
-                    baseUrl = when (selectedProvider) {
-                        CIProvider.GITHUB_ACTIONS -> "https://api.github.com"
-                        CIProvider.CIRCLE_CI -> "https://circleci.com/api"
-                        else -> ""
+                        }
                     }
-                }
-            }
 
-            // API Token
-            OutlinedTextField(
-                value = token,
-                onValueChange = { token = it },
-                label = { Text("API Token / Access Token") },
-                placeholder = { Text("Enter your access token") },
-                modifier = Modifier.fillMaxWidth(),
-                visualTransformation = if (tokenVisible) 
-                    VisualTransformation.None 
-                else 
-                    PasswordVisualTransformation(),
-                trailingIcon = {
-                    IconButton(onClick = { tokenVisible = !tokenVisible }) {
-                        Icon(
-                            if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (tokenVisible) "Hide token" else "Show token"
-                        )
+                    // OAuth button for supported providers
+                    if (selectedProvider != null && supportsOAuth(selectedProvider)) {
+                        AnimatedCardEntrance(delayMillis = 200) {
+                            Column {
+                                NeonButton(
+                                    text = "Sign in with OAuth",
+                                    onClick = { viewModel.startOAuthFlow(selectedProvider!!) },
+                                    icon = Icons.Default.Login,
+                                    modifier = Modifier.fillMaxWidth(),
+                                    enabled = !uiState.isLoading
+                                )
+
+                                Spacer(modifier = Modifier.height(16.dp))
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    HorizontalDivider(
+                                        modifier = Modifier.weight(1f),
+                                        color = GlassBorderDark
+                                    )
+                                    Text(
+                                        text = "OR",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.padding(horizontal = 16.dp)
+                                    )
+                                    HorizontalDivider(
+                                        modifier = Modifier.weight(1f),
+                                        color = GlassBorderDark
+                                    )
+                                }
+                            }
+                        }
                     }
-                },
-                singleLine = true
-            )
 
-            // Help text for token
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer
-                )
-            ) {
-                Column(
-                    modifier = Modifier.padding(12.dp)
-                ) {
-                    Text(
-                        text = "How to get an API token?",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = getTokenHelpText(selectedProvider),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
+                    AnimatedCardEntrance(
+                        delayMillis = if (selectedProvider != null && supportsOAuth(
+                                selectedProvider
+                            )
+                        ) 300 else 200
+                    ) {
+                        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            // Account Name
+                            GlassTextField(
+                                value = accountName,
+                                onValueChange = { accountName = it },
+                                placeholder = "e.g., My GitHub Account",
+                                modifier = Modifier.fillMaxWidth(),
+                                leadingIcon = Icons.Default.AccountCircle
+                            )
 
-            // Error message
-            if (uiState.error != null) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.errorContainer
-                    )
-                ) {
-                    Text(
-                        text = uiState.error ?: "An error occurred",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onErrorContainer,
-                        modifier = Modifier.padding(12.dp)
-                    )
-                }
-            }
+                            // Base URL (for certain providers)
+                            if (selectedProvider == CIProvider.JENKINS ||
+                                selectedProvider == CIProvider.GITLAB_CI ||
+                                selectedProvider == CIProvider.AZURE_DEVOPS
+                            ) {
+                                GlassTextField(
+                                    value = baseUrl,
+                                    onValueChange = { baseUrl = it },
+                                    placeholder = when (selectedProvider) {
+                                        CIProvider.JENKINS -> "https://jenkins.example.com"
+                                        CIProvider.GITLAB_CI -> "https://gitlab.com"
+                                        CIProvider.AZURE_DEVOPS -> "https://dev.azure.com"
+                                        else -> "https://example.com"
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    leadingIcon = Icons.Default.Link
+                                )
+                            } else {
+                                // Set default URLs for providers that don't need custom URLs
+                                LaunchedEffect(selectedProvider) {
+                                    baseUrl = when (selectedProvider) {
+                                        CIProvider.GITHUB_ACTIONS -> "https://api.github.com"
+                                        CIProvider.CIRCLE_CI -> "https://circleci.com/api"
+                                        else -> ""
+                                    }
+                                }
+                            }
 
-            Spacer(modifier = Modifier.weight(1f))
+                            // API Token
+                            OutlinedTextField(
+                                value = token,
+                                onValueChange = { token = it },
+                                label = { Text("API Token / Access Token") },
+                                placeholder = { Text("Enter your access token") },
+                                modifier = Modifier.fillMaxWidth(),
+                                visualTransformation = if (tokenVisible)
+                                    VisualTransformation.None
+                                else
+                                    PasswordVisualTransformation(),
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Key,
+                                        contentDescription = null,
+                                        tint = PrimaryPurple
+                                    )
+                                },
+                                trailingIcon = {
+                                    IconButton(onClick = { tokenVisible = !tokenVisible }) {
+                                        Icon(
+                                            if (tokenVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                                            contentDescription = if (tokenVisible) "Hide token" else "Show token",
+                                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                },
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = GlassSurfaceDark,
+                                    unfocusedContainerColor = GlassSurfaceDark,
+                                    focusedBorderColor = PrimaryPurple,
+                                    unfocusedBorderColor = GlassBorderDark,
+                                    cursorColor = PrimaryPurple,
+                                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+                                singleLine = true
+                            )
+                        }
+                    }
 
-            // Add Account Button
-            Button(
-                onClick = {
-                    if (selectedProvider != null && accountName.isNotBlank() && token.isNotBlank()) {
-                        viewModel.addAccount(
-                            provider = selectedProvider!!,
-                            name = accountName,
-                            baseUrl = baseUrl.ifBlank { 
-                                when (selectedProvider) {
-                                    CIProvider.GITHUB_ACTIONS -> "https://api.github.com"
-                                    CIProvider.CIRCLE_CI -> "https://circleci.com/api"
-                                    else -> baseUrl
+                    // Help text for token
+                    AnimatedCardEntrance(
+                        delayMillis = if (selectedProvider != null && supportsOAuth(
+                                selectedProvider
+                            )
+                        ) 400 else 300
+                    ) {
+                        GlassCard(modifier = Modifier.fillMaxWidth()) {
+                            Row(
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Text(
+                                    text = "💡 ",
+                                    style = MaterialTheme.typography.titleMedium
+                                )
+                                Column {
+                                    Text(
+                                        text = "How to get an API token?",
+                                        style = MaterialTheme.typography.labelMedium,
+                                        color = AccentCyan,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = getTokenHelpText(selectedProvider),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Error message
+                    if (uiState.error != null) {
+                        AnimatedCardEntrance {
+                            GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text(
+                                        text = "❌ ",
+                                        style = MaterialTheme.typography.titleMedium
+                                    )
+                                    Text(
+                                        text = uiState.error ?: "An error occurred",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = ErrorRed
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.weight(1f))
+
+                    // Add Account Button
+                    AnimatedCardEntrance(
+                        delayMillis = if (selectedProvider != null && supportsOAuth(
+                                selectedProvider
+                            )
+                        ) 500 else 400
+                    ) {
+                        NeonButton(
+                            text = if (uiState.isLoading) "Adding..." else "Add Account",
+                            onClick = {
+                                if (selectedProvider != null && accountName.isNotBlank() && token.isNotBlank()) {
+                                    viewModel.addAccount(
+                                        provider = selectedProvider!!,
+                                        name = accountName,
+                                        baseUrl = baseUrl.ifBlank {
+                                            when (selectedProvider) {
+                                                CIProvider.GITHUB_ACTIONS -> "https://api.github.com"
+                                                CIProvider.CIRCLE_CI -> "https://circleci.com/api"
+                                                else -> baseUrl
+                                            }
+                                        },
+                                        token = token
+                                    )
                                 }
                             },
-                            token = token
+                            modifier = Modifier.fillMaxWidth(),
+                            enabled = selectedProvider != null &&
+                                    accountName.isNotBlank() &&
+                                    token.isNotBlank() &&
+                                    !uiState.isLoading
                         )
                     }
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = selectedProvider != null && 
-                          accountName.isNotBlank() && 
-                          token.isNotBlank() &&
-                          !uiState.isLoading
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = MaterialTheme.colorScheme.onPrimary
-                    )
-                } else {
-                    Text("Add Account")
                 }
             }
         }
@@ -293,14 +365,17 @@ fun AddAccountScreen(
     if (showProviderDialog) {
         AlertDialog(
             onDismissRequest = { showProviderDialog = false },
-            title = { Text("Select CI/CD Provider") },
+            title = {
+                Text(
+                    "Select CI/CD Provider",
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            },
             text = {
-                Column {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     CIProvider.values().forEach { provider ->
-                        OutlinedCard(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 4.dp),
+                        GlassCard(
+                            modifier = Modifier.fillMaxWidth(),
                             onClick = {
                                 selectedProvider = provider
                                 showProviderDialog = false
@@ -309,7 +384,7 @@ fun AddAccountScreen(
                             Text(
                                 text = provider.displayName,
                                 style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.padding(16.dp)
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
                     }
@@ -317,9 +392,11 @@ fun AddAccountScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showProviderDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = AccentCyan)
                 }
-            }
+            },
+            containerColor = SurfaceDark,
+            textContentColor = MaterialTheme.colorScheme.onSurface
         )
     }
 }
