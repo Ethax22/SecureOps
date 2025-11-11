@@ -3,10 +3,25 @@
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
+
+    <!-- Purple gradient background circle -->
     <path
-        android:fillColor="#2196F3"
-        android:pathData="M54,54m-40,0a40,40 0,1 1,80 0a40,40 0,1 1,-80 0" />
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,54m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0" />
+
+    <!-- Shield shape (white) -->
     <path
         android:fillColor="#FFFFFF"
-        android:pathData="M54,34L54,74M34,54L74,54" />
+        android:pathData="M54,30 L36,37 L36,52 Q36,62 54,72 Q72,62 72,52 L72,37 Z" />
+
+    <!-- Lock icon inside shield (purple) -->
+    <path
+        android:fillColor="#8B5CF6"
+        android:pathData="M54,43 Q57,43 57,46 L57,48 L59,48 L59,55 L49,55 L49,48 L51,48 L51,46 Q51,43 54,43 M54,50 Q55.5,50 55.5,51.5 Q55.5,53 54,53 Q52.5,53 52.5,51.5 Q52.5,50 54,50" />
+
+    <!-- Pink gradient overlay for depth -->
+    <path
+        android:fillColor="#EC4899"
+        android:fillAlpha="0.2"
+        android:pathData="M54,54m-45,0a45,45 0,1 1,90 0a45,45 0,1 1,-90 0" />
 </vector>
