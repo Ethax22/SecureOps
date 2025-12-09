@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 import org.koin.core.component.KoinComponent
 import org.koin.core.component.inject
+import android.content.Context
 
 class AddAccountViewModel(
     private val accountRepository: AccountRepository,
@@ -25,12 +26,12 @@ class AddAccountViewModel(
     private val _uiState = MutableStateFlow(AddAccountUiState())
     val uiState: StateFlow<AddAccountUiState> = _uiState.asStateFlow()
 
-    fun startOAuthFlow(provider: CIProvider) {
+    fun startOAuthFlow(provider: CIProvider, context: Context? = null) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
 
             try {
-                val result = oauth2Manager.authenticate(provider)
+                val result = oauth2Manager.authenticate(provider, context)
 
                 result.fold(
                     onSuccess = { token ->

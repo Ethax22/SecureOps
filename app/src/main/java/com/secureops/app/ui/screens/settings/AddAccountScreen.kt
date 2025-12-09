@@ -16,6 +16,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +33,7 @@ fun AddAccountScreen(
     viewModel: AddAccountViewModel = koinViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
     
     var accountName by remember { mutableStateOf("") }
     var selectedProvider by remember { mutableStateOf<CIProvider?>(null) }
@@ -150,7 +152,12 @@ fun AddAccountScreen(
                             Column {
                                 NeonButton(
                                     text = "Sign in with OAuth",
-                                    onClick = { viewModel.startOAuthFlow(selectedProvider!!) },
+                                    onClick = {
+                                        viewModel.startOAuthFlow(
+                                            selectedProvider!!,
+                                            context
+                                        )
+                                    },
                                     icon = Icons.Default.Login,
                                     modifier = Modifier.fillMaxWidth(),
                                     enabled = !uiState.isLoading

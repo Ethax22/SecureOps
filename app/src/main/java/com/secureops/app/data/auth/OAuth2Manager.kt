@@ -1,5 +1,6 @@
 package com.secureops.app.data.auth
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -37,7 +38,10 @@ class OAuth2Manager(
     /**
      * Start OAuth2 flow for a provider
      */
-    suspend fun authenticate(provider: CIProvider): Result<OAuthToken> {
+    suspend fun authenticate(
+        provider: CIProvider,
+        activityContext: Context? = null
+    ): Result<OAuthToken> {
         return suspendCancellableCoroutine { continuation ->
             val state = UUID.randomUUID().toString()
 
@@ -57,7 +61,15 @@ class OAuth2Manager(
                     .setShowTitle(true)
                     .build()
 
-                customTabsIntent.launchUrl(context, Uri.parse(authUrl))
+                // Use the provided activity context or application context
+                val launchContext = activityContext ?: context
+
+                // If using application context, add FLAG_ACTIVITY_NEW_TASK
+                if (launchContext !is Activity) {
+                    customTabsIntent.intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+
+                customTabsIntent.launchUrl(launchContext, Uri.parse(authUrl))
             } catch (e: Exception) {
                 Timber.e(e, "Failed to launch OAuth flow")
                 pendingAuthRequests.remove(state)
