@@ -1,5 +1,7 @@
 package com.secureops.app.domain.model
 
+import com.secureops.app.ml.explainability.ExplanationResult
+
 data class Pipeline(
     val id: String,
     val accountId: String,
@@ -26,5 +28,6 @@ data class FailurePrediction(
     val riskPercentage: Float,
     val confidence: Float,
     val causalFactors: List<String>,
-    val predictedAt: Long = System.currentTimeMillis()
+    val predictedAt: Long = System.currentTimeMillis(),
+    val explanation: ExplanationResult? = null  // SHAP-based explanation
 )

@@ -1,5 +1,6 @@
 package com.secureops.app.data.repository
 
+import com.secureops.app.data.local.dao.BuildEvaluationDao
 import com.secureops.app.data.local.dao.PipelineDao
 import com.secureops.app.data.local.entity.toEntity
 import com.secureops.app.data.local.entity.toDomain
@@ -8,6 +9,7 @@ import com.secureops.app.data.remote.mapper.PipelineMapper
 import com.secureops.app.data.remote.mapper.PipelineMapper.toPipeline
 import com.secureops.app.domain.model.*
 import com.secureops.app.ml.FailurePredictionModel
+import com.secureops.app.ml.training.LabelGenerator
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -34,7 +36,9 @@ class PipelineRepository(
     private val azureDevOpsService: AzureDevOpsService,
     private val accountRepository: AccountRepository,
     private val failurePredictionModel: FailurePredictionModel,
-    private val gson: Gson
+    private val gson: Gson,
+    private val buildEvaluationDao: BuildEvaluationDao? = null,
+    private val labelGenerator: LabelGenerator? = null
 ) {
     fun getAllPipelines(): Flow<List<Pipeline>> {
         return pipelineDao.getAllPipelines().map { entities ->
@@ -196,54 +200,56 @@ class PipelineRepository(
     }
 
     private suspend fun fetchJenkinsPipelines(account: Account, token: String): List<Pipeline> {
-        return try {
-            // Create a dynamic Jenkins service with the correct base URL and authentication
-            val jenkinsServiceDynamic = createJenkinsService(account.baseUrl, token)
-            
-            val response = jenkinsServiceDynamic.getJobs()
+        // Create a dynamic Jenkins service with the correct base URL and authentication
+        val jenkinsServiceDynamic = createJenkinsService(account.baseUrl, token)
+        
+        Timber.i("Jenkins: Calling API at ${account.baseUrl}api/json")
+        val response = jenkinsServiceDynamic.getJobs()
 
-            if (response.isSuccessful && response.body() != null) {
-                val jobsResponse = response.body()!!
-                Timber.d("Jenkins API response: ${jobsResponse.jobs.size} jobs found")
+        if (response.isSuccessful && response.body() != null) {
+            val jobsResponse = response.body()!!
+            Timber.i("Jenkins API response: ${jobsResponse.jobs.size} jobs found")
 
-                jobsResponse.jobs.mapNotNull { job ->
-                    try {
-                        job.lastBuild?.let { build ->
-                            Pipeline(
-                                id = "${job.name}-${build.number}",
-                                accountId = account.id,
-                                repositoryName = job.name,
-                                repositoryUrl = job.url,
-                                branch = "main", // Jenkins doesn't have branch info in this API call
-                                buildNumber = build.number,
-                                status = mapJenkinsStatus(job.color, build.result),
-                                commitHash = "",
-                                commitMessage = "", // We could fetch more detailed info from individual job API
-                                commitAuthor = "",
-                                startedAt = if (build.timestamp > 0) build.timestamp else null,
-                                finishedAt = if (build.timestamp > 0 && build.duration > 0)
-                                    build.timestamp + build.duration else null,
-                                duration = if (build.duration > 0) build.duration else null,
-                                triggeredBy = "", // We could get this from build details API
-                                webUrl = job.url,
-                                provider = CIProvider.JENKINS
-                            )
-                        }
-                    } catch (e: Exception) {
-                        Timber.e(e, "Failed to process Jenkins job: ${job.name}")
-                        null
+            return jobsResponse.jobs.mapNotNull { job ->
+                try {
+                    job.lastBuild?.let { build ->
+                        Pipeline(
+                            id = "${job.name}-${build.number}",
+                            accountId = account.id,
+                            repositoryName = job.name,
+                            repositoryUrl = job.url,
+                            branch = "main",
+                            buildNumber = build.number,
+                            status = mapJenkinsStatus(job.color, build.result),
+                            commitHash = "",
+                            commitMessage = "",
+                            commitAuthor = "",
+                            startedAt = if (build.timestamp > 0) build.timestamp else null,
+                            finishedAt = if (build.timestamp > 0 && build.duration > 0)
+                                build.timestamp + build.duration else null,
+                            duration = if (build.duration > 0) build.duration else null,
+                            triggeredBy = "",
+                            webUrl = job.url,
+                            provider = CIProvider.JENKINS
+                        )
                     }
-                }.also {
-                    Timber.d("Fetched ${it.size} Jenkins pipelines from ${account.baseUrl}")
+                } catch (e: Exception) {
+                    Timber.e(e, "Failed to process Jenkins job: ${job.name}")
+                    null
                 }
-            } else {
-                Timber.w("Jenkins API call failed: ${response.code()} - ${response.message()}")
-                Timber.w("Response body: ${response.errorBody()?.string()}")
-                emptyList()
+            }.also {
+                Timber.i("Fetched ${it.size} Jenkins pipelines from ${account.baseUrl}")
             }
-        } catch (e: Exception) {
-            Timber.e(e, "Failed to fetch Jenkins pipelines for account ${account.name}")
-            emptyList()
+        } else {
+            val code = response.code()
+            val errorBody = response.errorBody()?.string() ?: response.message()
+            Timber.e("Jenkins API failed: $code - $errorBody")
+            throw Exception("Jenkins API error $code: ${when(code) {
+                401 -> "Unauthorized. Check your username:apitoken format."
+                403 -> "Forbidden. Jenkins CSRF or permissions issue."
+                404 -> "Not found. Check your Jenkins base URL."
+                else -> errorBody
+            }}")
         }
     }
 
@@ -355,12 +361,11 @@ class PipelineRepository(
             else -> "$baseUrl/"
         }
 
-        // Handle Basic Auth: encode token if it's not already
-        val base64Token = if (token.contains(":")) {
-            android.util.Base64.encodeToString(token.toByteArray(), android.util.Base64.NO_WRAP)
-        } else {
-            token // Assume token already encoded
-        }
+        // Handle Basic Auth: always Base64-encode the token.
+        // Token should be in "username:apitoken" format for Jenkins.
+        val base64Token = android.util.Base64.encodeToString(
+            token.toByteArray(), android.util.Base64.NO_WRAP
+        )
 
         val authInterceptor = Interceptor { chain ->
             val original = chain.request()
@@ -483,33 +488,24 @@ class PipelineRepository(
                 emptyList()
             }
 
-            // 3. Commit diff (simplified - use commit message as proxy)
-            // In production, you'd fetch actual diff from Git API
-            val commitDiff = pipeline.commitMessage
+            // Run prediction with explanation using the new API
+            val predictionResult = failurePredictionModel.predictWithExplanation(pipeline)
 
-            Timber.d("Prediction inputs - Logs: ${logs.length} chars, History: ${testHistory.size} builds, Commit: ${commitDiff.length} chars")
-
-            // Run prediction with real data
-            val (riskPercentage, confidence) = failurePredictionModel.predictFailure(
-                commitDiff, testHistory, logs
-            )
-
-            // Get causal factors
-            val causalFactors = failurePredictionModel.identifyCausalFactors(
-                commitDiff, testHistory, logs
-            )
-
-            Timber.i("🎯 Prediction result: ${riskPercentage.toInt()}% risk (${(confidence * 100).toInt()}% confidence)")
-            if (causalFactors.isNotEmpty()) {
-                Timber.d("Causal factors: ${causalFactors.joinToString(", ")}")
+            Timber.i("🎯 Prediction result: ${predictionResult.riskPercentage.toInt()}% risk (${(predictionResult.confidence * 100).toInt()}% confidence)")
+            if (predictionResult.causalFactors.isNotEmpty()) {
+                Timber.d("Causal factors: ${predictionResult.causalFactors.joinToString(", ")}")
+            }
+            if (predictionResult.explanation != null) {
+                Timber.d("Explainable AI metrics generated successfully")
             }
 
             // Update pipeline with prediction
             val updatedPipeline = pipeline.copy(
                 failurePrediction = FailurePrediction(
-                    riskPercentage = riskPercentage,
-                    confidence = confidence,
-                    causalFactors = causalFactors
+                    riskPercentage = predictionResult.riskPercentage,
+                    confidence = predictionResult.confidence,
+                    causalFactors = predictionResult.causalFactors,
+                    explanation = predictionResult.explanation
                 )
             )
 
@@ -734,6 +730,86 @@ class PipelineRepository(
         } catch (e: Exception) {
             Timber.e(e, "Failed to fetch Azure DevOps artifacts")
             Result.failure(e)
+        }
+    }
+
+    /**
+     * Update evaluation with actual outcome when pipeline completes
+     * Compares prediction with actual result for model performance tracking
+     * 
+     * @param pipeline Pipeline with completed status
+     */
+    suspend fun evaluatePrediction(pipeline: Pipeline) {
+        if (buildEvaluationDao == null || labelGenerator == null) {
+            Timber.d("Evaluation DAO or label generator not available, skipping evaluation update")
+            return
+        }
+
+        try {
+            // Get existing evaluation
+            val evaluation = buildEvaluationDao.getEvaluationById(pipeline.id)
+            
+            if (evaluation == null) {
+                Timber.d("No evaluation found for pipeline ${pipeline.id}, skipping")
+                return
+            }
+
+            // Check if pipeline has completed
+            val pipelineEntity = pipeline.toEntity()
+            if (!labelGenerator.isValidForTraining(pipelineEntity)) {
+                Timber.d("Pipeline ${pipeline.id} not yet completed, skipping evaluation")
+                return
+            }
+
+            // Generate actual label
+            val actualLabel = labelGenerator.generateLabel(pipelineEntity)
+            
+            if (actualLabel == null) {
+                Timber.w("Could not generate label for pipeline ${pipeline.id}")
+                return
+            }
+
+            // Update evaluation with actual outcome
+            val updated = evaluation.copy(
+                actualLabel = actualLabel,
+                evaluatedAt = System.currentTimeMillis()
+            )
+
+            buildEvaluationDao.update(updated)
+
+            // Log the evaluation result
+            val correct = (evaluation.predictedLabel == actualLabel)
+            val result = if (correct) "✅ CORRECT" else "❌ INCORRECT"
+            
+            Timber.i("Evaluation updated for ${pipeline.id}: $result " +
+                    "(predicted=${evaluation.predictedLabel}, actual=$actualLabel)")
+
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to evaluate prediction for pipeline ${pipeline.id}")
+        }
+    }
+
+    /**
+     * Batch evaluate all pending predictions
+     * Useful for periodic evaluation updates
+     */
+    suspend fun evaluateAllPendingPredictions() {
+        if (buildEvaluationDao == null) return
+
+        try {
+            val pending = buildEvaluationDao.getPendingEvaluations().first()
+            Timber.i("Evaluating ${pending.size} pending predictions")
+
+            pending.forEach { evaluation ->
+                val pipeline = getPipelineById(evaluation.buildId)
+                if (pipeline != null) {
+                    evaluatePrediction(pipeline)
+                }
+            }
+
+            Timber.i("Evaluation batch complete")
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to evaluate pending predictions")
         }
     }
 }

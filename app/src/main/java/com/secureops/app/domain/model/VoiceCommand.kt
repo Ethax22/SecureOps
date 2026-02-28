@@ -10,6 +10,7 @@ data class VoiceCommand(
 enum class CommandIntent {
     QUERY_BUILD_STATUS,
     EXPLAIN_FAILURE,
+    EXPLAIN_PREDICTION,      // NEW: Explain AI prediction with SHAP
     CHECK_RISKY_DEPLOYMENTS,
     RERUN_BUILD,
     ROLLBACK_DEPLOYMENT,

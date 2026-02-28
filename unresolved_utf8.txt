@@ -1,0 +1,58 @@
+﻿
+  
+cureops/app/data/executor/Rem
+  ediationExecutor.kt:62:42 
+> Unresolved reference 
+  'confidence'.
+  At line:1 char:1
+  
+data/worker/RemediationOutcom
+  eTrackerWorker.kt:144:29 
+> Unresolved reference 
+  'CANCELLED'.
+  e: 
+file:///C:/Users/praka/Stu
+  
+data/worker/RemediationOutcom
+  eTrackerWorker.kt:157:29 
+> Unresolved reference 
+  'UNSTABLE'.
+  e: 
+file:///C:/Users/praka/Stu
+  
+data/worker/RemediationOutcom
+  eTrackerWorker.kt:172:90 
+> Unresolved reference 
+  'UNSTABLE'.
+  e: 
+file:///C:/Users/praka/Stu
+  
+ui/screens/details/Explainabi
+  lityComponents.kt:335:11 
+> Unresolved reference 'Dp'.
+  e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+ui/screens/settings/OfflineSe
+  ttingsScreen.kt:94:61 
+> Unresolved reference 
+  'DangerRed'.
+  e: 
+file:///C:/Users/praka/Stu
+  
+ui/screens/settings/OfflineSe
+  ttingsScreen.kt:120:58 
+> Unresolved reference 
+  'WarningOrange'.
+  e: 
+file:///C:/Users/praka/Stu
+  
+ui/screens/settings/OfflineSe
+  ttingsScreen.kt:187:58 
+> Unresolved reference 
+  'WarningOrange'.
+  
+
+

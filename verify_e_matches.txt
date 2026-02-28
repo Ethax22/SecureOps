@@ -1,0 +1,1141 @@
+﻿
+  
+  > Task 
+:app:compileDebugKotlin
+> ./gradlew : e: 
+file:///C:/Use
+  
+rs/praka/StudioProjects/Secur
+  
+eOps/app/src/main/java/com/se
+  ~~~~~~~~~~~~~~~~~~~~
+      + CategoryInfo         
+  
+>    : NotSpecified: (e: 
+file  
+    :///C:/U...' was expecte 
+  
+   d.:String) [], RemoteExc  
+  
+     : NativeCommandError
+   
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Nothing?' was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:94:41 Unresolved 
+  reference 'upsertPipeline'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:125:61 Unresolved 
+  reference 'UNSTABLE'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:125:83 Unresolved 
+  reference 'CANCELLED'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:152:13 No parameter 
+  with name 'commitSha' 
+found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Int', but 
+  'kotlin.Long?' was 
+expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:158:13 No parameter 
+  with name 'timestamp' 
+found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  with name 'workflowName' 
+  found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:160:13 No parameter 
+  with name 'jobName' found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'commitHash'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 
+'commitAuthor'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'startedAt'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'finishedAt'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'webUrl'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:207:35 Unresolved 
+  reference 'commitSha'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:209:35 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:303:59 Unresolved 
+  reference 'kotlinx'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  candidates:
+  fun <T> Array<out 
+> T>.filter(predicate: (T) 
+-> 
+  Boolean): List<T>
+  fun 
+  List<Float>
+  fun 
+DoubleArray.filter(predic
+> ate: (Double) -> Boolean): 
+  List<Double>
+  fun 
+BooleanArray.filter(predi
+> cate: (Boolean) -> 
+Boolean): 
+  List<Boolean>
+  fun 
+  List<Char>
+  fun <T> 
+Iterable<T>.filter(pr
+> edicate: (T) -> Boolean): 
+  List<T>
+  fun <K, V> Map<out K, 
+  List<UByte>
+  fun 
+UShortArray.filter(predic
+> ate: (UShort) -> Boolean): 
+  List<UShort>
+  fun <T> 
+Sequence<T>.filter(pr
+> edicate: (T) -> Boolean): 
+  Sequence<T>
+  fun 
+CharSequence.filter(predi
+> cate: (Char) -> Boolean): 
+  CharSequence
+  fun 
+String.filter(predicate: 
+  (Char) -> Boolean): String
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:304:52 Unresolved 
+  reference 'it'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  (Map.Entry<K, V>) -> 
+Unit): 
+  Unit
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  functions can only be 
+called 
+  within coroutine body.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:306:64 Unresolved 
+  reference 'it'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:308:47 Unresolved 
+  reference 'size'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:319:59 Unresolved 
+  reference 'kotlinx'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  candidates:
+  fun <T> Array<out 
+> T>.any(predicate: (T) -> 
+  Boolean): Boolean
+  fun 
+ByteArray.any(predicate: 
+  
+CharSequence.any(predicate: 
+  (Char) -> Boolean): Boolean
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:320:29 Unresolved 
+  reference 'it'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:174:19 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:174:39 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:185:19 Unresolved 
+  reference 'commitSha'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:185:39 Unresolved 
+  reference 'commitSha'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:306:49 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:307:51 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:334:29 Unresolved 
+  reference 'upsertPipeline'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  
+app.data.local.entity.Pipelin
+  eEntity' was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  
+s.app.domain.model.Pipeline>'
+   was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:373:51 Unresolved 
+  reference 'upsertPipeline'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'UNKNOWN' branch or an 
+  'else' branch.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  parameter 
+  'remediationLearner'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  parameter 
+  'failureTypeDetector'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:204:25 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:219:25 Unresolved 
+  reference 'DangerRed'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:227:25 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:271:25 Unresolved 
+  reference 'AccentBlue'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:91:34 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:99:73 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:249:52 Unresolved 
+  reference 'DangerRed'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  UShortArray.component1(): 
+  UShort.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  UShortArray.component2(): 
+  UShort.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:277:36 Unresolved 
+  reference 'DangerRed'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Pair<A, B>', but 
+'K' 
+  was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  type for this parameter. 
+  Please specify it 
+explicitly.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:278:32 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Pair<A, B>', but 
+'K' 
+  was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  type for this parameter. 
+  Please specify it 
+explicitly.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  kotlin.String>', but 'K' 
+was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  kotlin.String>', but 'K' 
+was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  kotlin.String>', but 'K' 
+was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:286:23 Unresolved 
+  reference 'copy'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:310:73 Unresolved 
+  reference 'AccentBlue'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  reference 'launch'.
+  
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  
+  > Task 
+:app:compileReleaseKotlin 
+FAILED
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Float', but 
+  'kotlin.Double' was 
+expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Nothing?' was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:94:41 Unresolved 
+  reference 'upsertPipeline'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:125:61 Unresolved 
+  reference 'UNSTABLE'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:125:83 Unresolved 
+  reference 'CANCELLED'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:152:13 No parameter 
+  with name 'commitSha' 
+found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Int', but 
+  'kotlin.Long?' was 
+expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:158:13 No parameter 
+  with name 'timestamp' 
+found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  with name 'workflowName' 
+  found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:160:13 No parameter 
+  with name 'jobName' found.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'commitHash'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 
+'commitAuthor'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'startedAt'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'finishedAt'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:162:13 No value 
+passed 
+  for parameter 'webUrl'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:207:35 Unresolved 
+  reference 'commitSha'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:209:35 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:303:59 Unresolved 
+  reference 'kotlinx'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  candidates:
+  fun <T> Array<out 
+> T>.filter(predicate: (T) 
+-> 
+  Boolean): List<T>
+  fun 
+  List<Float>
+  fun 
+DoubleArray.filter(predic
+> ate: (Double) -> Boolean): 
+  List<Double>
+  fun 
+BooleanArray.filter(predi
+> cate: (Boolean) -> 
+Boolean): 
+  List<Boolean>
+  fun 
+  List<Char>
+  fun <T> 
+Iterable<T>.filter(pr
+> edicate: (T) -> Boolean): 
+  List<T>
+  fun <K, V> Map<out K, 
+  List<UByte>
+  fun 
+UShortArray.filter(predic
+> ate: (UShort) -> Boolean): 
+  List<UShort>
+  fun <T> 
+Sequence<T>.filter(pr
+> edicate: (T) -> Boolean): 
+  Sequence<T>
+  fun 
+CharSequence.filter(predi
+> cate: (Char) -> Boolean): 
+  CharSequence
+  fun 
+String.filter(predicate: 
+  (Char) -> Boolean): String
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:304:52 Unresolved 
+  reference 'it'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  (Map.Entry<K, V>) -> 
+Unit): 
+  Unit
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  functions can only be 
+called 
+  within coroutine body.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:306:64 Unresolved 
+  reference 'it'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:308:47 Unresolved 
+  reference 'size'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:319:59 Unresolved 
+  reference 'kotlinx'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  candidates:
+  fun <T> Array<out 
+> T>.any(predicate: (T) -> 
+  Boolean): Boolean
+  fun 
+ByteArray.any(predicate: 
+  
+CharSequence.any(predicate: 
+  (Char) -> Boolean): Boolean
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  r.kt:320:29 Unresolved 
+  reference 'it'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:174:19 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:174:39 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:185:19 Unresolved 
+  reference 'commitSha'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:185:39 Unresolved 
+  reference 'commitSha'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:306:49 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:307:51 Unresolved 
+  reference 'timestamp'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:334:29 Unresolved 
+  reference 'upsertPipeline'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  
+app.data.local.entity.Pipelin
+  eEntity' was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  
+s.app.domain.model.Pipeline>'
+   was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  lver.kt:373:51 Unresolved 
+  reference 'upsertPipeline'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'UNKNOWN' branch or an 
+  'else' branch.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  parameter 
+  'remediationLearner'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  parameter 
+  'failureTypeDetector'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:204:25 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:219:25 Unresolved 
+  reference 'DangerRed'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:227:25 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  creen.kt:271:25 Unresolved 
+  reference 'AccentBlue'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:91:34 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:99:73 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:249:52 Unresolved 
+  reference 'DangerRed'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  UShortArray.component1(): 
+  UShort.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  UShortArray.component2(): 
+  UShort.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:277:36 Unresolved 
+  reference 'DangerRed'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Pair<A, B>', but 
+'K' 
+  was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  type for this parameter. 
+  Please specify it 
+explicitly.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:278:32 Unresolved 
+  reference 'WarningOrange'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  'kotlin.Pair<A, B>', but 
+'K' 
+  was expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  type for this parameter. 
+  Please specify it 
+explicitly.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  kotlin.String>', but 'K' 
+was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  kotlin.String>', but 'K' 
+was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  kotlin.String>', but 'K' 
+was 
+  expected.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:286:23 Unresolved 
+  reference 'copy'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  d.kt:310:73 Unresolved 
+  reference 'AccentBlue'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  tCard.kt:63:56 Unresolved 
+  reference 'launch'.
+> e: 
+file:///C:/Users/praka/Stu
+  
+dioProjects/SecureOps/app/src
+  
+/main/java/com/secureops/app/
+  suspend function.
+  
+> FAILURE: Build completed 
+  with 2 failures.
+  
+
+

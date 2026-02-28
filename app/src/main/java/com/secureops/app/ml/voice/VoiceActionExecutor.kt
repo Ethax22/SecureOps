@@ -6,6 +6,9 @@ import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.data.analytics.AnalyticsRepository
 import com.secureops.app.domain.model.*
 import com.secureops.app.ml.VoiceCommandProcessor
+import com.secureops.app.ml.RunAnywhereManager
+import com.secureops.app.ml.explainability.toVoiceExplanation
+import com.secureops.app.ml.explainability.estimateSpeakingTime
 import kotlinx.coroutines.flow.first
 import timber.log.Timber
 
@@ -15,7 +18,8 @@ class VoiceActionExecutor(
     private val remediationExecutor: RemediationExecutor,
     private val ttsManager: TextToSpeechManager,
     private val accountRepository: AccountRepository,
-    private val analyticsRepository: AnalyticsRepository
+    private val analyticsRepository: AnalyticsRepository,
+    private val runAnywhereManager: RunAnywhereManager
 ) {
 
     /**
@@ -54,6 +58,7 @@ class VoiceActionExecutor(
         return when (command.intent) {
             CommandIntent.QUERY_BUILD_STATUS -> queryBuildStatus(command)
             CommandIntent.EXPLAIN_FAILURE -> explainFailure(command)
+            CommandIntent.EXPLAIN_PREDICTION -> explainPrediction(command)
             CommandIntent.CHECK_RISKY_DEPLOYMENTS -> checkRiskyDeployments(command)
             CommandIntent.RERUN_BUILD -> rerunBuild(command)
             CommandIntent.ROLLBACK_DEPLOYMENT -> rollbackDeployment(command)
@@ -71,11 +76,7 @@ class VoiceActionExecutor(
             CommandIntent.QUERY_DURATION -> queryDuration(command)
             CommandIntent.QUERY_SUCCESS_RATE -> querySuccessRate(command)
             CommandIntent.QUERY_COMMIT -> queryCommit(command)
-            CommandIntent.UNKNOWN -> VoiceExecutionResult(
-                success = false,
-                message = "I didn't understand that command",
-                spokenResponse = "I didn't understand that command. Try asking about build status or pipeline failures."
-            )
+            CommandIntent.UNKNOWN -> handleUnknownCommandWithAI(command)
         }
     }
 
@@ -145,6 +146,124 @@ class VoiceActionExecutor(
             message = explanation,
             spokenResponse = explanation,
             data = mapOf("pipeline" to failedPipeline)
+        )
+    }
+
+    /**
+     * Explain AI prediction using SHAP analysis
+     * 
+     * Provides voice-optimized explanation of why a build is risky
+     * based on feature contributions from SHAP values
+     */
+    private suspend fun explainPrediction(command: VoiceCommand): VoiceExecutionResult {
+        val buildNumber = command.parameters["buildNumber"]
+        val pipelines = pipelineRepository.getAllPipelines().first()
+
+        // Find the pipeline to explain
+        val targetPipeline = if (buildNumber != null) {
+            pipelines.find { it.buildNumber.toString() == buildNumber }
+        } else {
+            // Default to the most recent high-risk pipeline
+            pipelines
+                .filter { it.failurePrediction?.riskPercentage ?: 0f > 50f }
+                .maxByOrNull { it.startedAt ?: 0 }
+                ?: pipelines.lastOrNull()
+        }
+
+        if (targetPipeline == null) {
+            val response = "I couldn't find any builds with predictions to explain."
+            return VoiceExecutionResult(
+                success = false,
+                message = response,
+                spokenResponse = response
+            )
+        }
+
+        val prediction = targetPipeline.failurePrediction
+        if (prediction == null) {
+            val response = "Build ${targetPipeline.buildNumber} doesn't have a risk prediction yet."
+            return VoiceExecutionResult(
+                success = false,
+                message = response,
+                spokenResponse = response
+            )
+        }
+
+        // Check if we have explanation data (SHAP analysis)
+        val explanation = prediction.explanation
+        if (explanation == null) {
+            // Fallback to basic prediction info without SHAP
+            val response = buildString {
+                append("Build ${targetPipeline.buildNumber} has a ")
+                append("${prediction.riskPercentage.toInt()} percent risk of failure. ")
+                
+                if (prediction.causalFactors.isNotEmpty()) {
+                    append("The main factors are: ")
+                    append(prediction.causalFactors.take(2).joinToString(" and "))
+                    append(".")
+                }
+            }
+            
+            return VoiceExecutionResult(
+                success = true,
+                message = response,
+                spokenResponse = response,
+                data = mapOf(
+                    "pipeline" to targetPipeline,
+                    "prediction" to prediction
+                )
+            )
+        }
+
+        // Generate voice-optimized explanation from SHAP data
+        val voiceExplanation = explanation.toVoiceExplanation(
+            includeBaseline = true,
+            maxContributors = 3
+        )
+        
+        // Verify speaking time is under 30 seconds
+        val estimatedTime = explanation.estimateSpeakingTime()
+        Timber.d("Voice explanation length: ~$estimatedTime seconds")
+        
+        if (estimatedTime > 30) {
+            Timber.w("Voice explanation exceeds 30 seconds, using shorter version")
+            // Use shorter version with fewer contributors
+            val shorterExplanation = explanation.toVoiceExplanation(
+                includeBaseline = false,
+                maxContributors = 2
+            )
+            
+            val response = voiceProcessor.generateResponse(
+                CommandIntent.EXPLAIN_PREDICTION,
+                mapOf("voiceExplanation" to shorterExplanation)
+            )
+
+            return VoiceExecutionResult(
+                success = true,
+                message = response,
+                spokenResponse = response,
+                data = mapOf(
+                    "pipeline" to targetPipeline,
+                    "prediction" to prediction,
+                    "explanation" to explanation
+                )
+            )
+        }
+
+        val response = voiceProcessor.generateResponse(
+            CommandIntent.EXPLAIN_PREDICTION,
+            mapOf("voiceExplanation" to voiceExplanation)
+        )
+
+        return VoiceExecutionResult(
+            success = true,
+            message = response,
+            spokenResponse = response,
+            data = mapOf(
+                "pipeline" to targetPipeline,
+                "prediction" to prediction,
+                "explanation" to explanation
+            )
         )
     }
 
@@ -676,6 +795,28 @@ class VoiceActionExecutor(
             diff < 86_400_000 -> "${diff / 3_600_000} hours ago"
             diff < 604_800_000 -> "${diff / 86_400_000} days ago"
             else -> "${diff / 604_800_000} weeks ago"
+        }
+    }
+
+    /**
+     * Fallback to On-Device AI for unknown commands
+     */
+    private suspend fun handleUnknownCommandWithAI(command: VoiceCommand): VoiceExecutionResult {
+        return try {
+            val response = runAnywhereManager.generateAnalysis(command.rawText)
+            
+            VoiceExecutionResult(
+                success = true,
+                message = response,
+                spokenResponse = response
+            )
+        } catch (e: Exception) {
+            Timber.e(e, "Error falling back to RunAnywhereManager for unknown command")
+            VoiceExecutionResult(
+                success = false,
+                message = "I didn't understand that command",
+                spokenResponse = "I didn't understand that command. Try asking about build status or pipeline failures."
+            )
         }
     }
 

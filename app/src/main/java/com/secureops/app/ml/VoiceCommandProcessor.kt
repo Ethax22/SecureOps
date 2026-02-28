@@ -61,6 +61,23 @@ class VoiceCommandProcessor {
             text.matches(Regex(".*what caused.*fail.*")) -> CommandIntent.EXPLAIN_FAILURE
             text.contains("root cause") -> CommandIntent.EXPLAIN_FAILURE
             
+            // Explain AI prediction - NEW: SHAP-based explanations
+            text.contains("explain") && (text.contains("prediction") || text.contains("risk") || text.contains("ai")) -> {
+                CommandIntent.EXPLAIN_PREDICTION
+            }
+            text.contains("why") && (text.contains("risky") || text.contains("risk") || text.contains("high risk")) -> {
+                CommandIntent.EXPLAIN_PREDICTION
+            }
+            text.matches(Regex(".*why.*risk.*")) -> CommandIntent.EXPLAIN_PREDICTION
+            text.matches(Regex(".*what.*contribut.*")) -> CommandIntent.EXPLAIN_PREDICTION
+            text.contains("factors") && (text.contains("risk") || text.contains("failure")) -> {
+                CommandIntent.EXPLAIN_PREDICTION
+            }
+            text.matches(Regex(".*explain.*shap.*")) -> CommandIntent.EXPLAIN_PREDICTION
+            text.contains("why is") && text.contains("likely to fail") -> CommandIntent.EXPLAIN_PREDICTION
+            text.matches(Regex(".*what makes.*risky.*")) -> CommandIntent.EXPLAIN_PREDICTION
+            text.contains("breakdown") && text.contains("risk") -> CommandIntent.EXPLAIN_PREDICTION
+            
             // Check risky deployments - Enhanced patterns
             text.contains("risky") || text.contains("risk") -> {
                 CommandIntent.CHECK_RISKY_DEPLOYMENTS
@@ -306,6 +323,12 @@ class VoiceCommandProcessor {
                     append("failed because: $reason")
                     stepName?.let { append(" The failure occurred in the $it step.") }
                 }
+            }
+            
+            CommandIntent.EXPLAIN_PREDICTION -> {
+                // Voice-optimized SHAP explanation
+                val voiceExplanation = data["voiceExplanation"] as? String
+                voiceExplanation ?: "I don't have enough data to explain this prediction yet."
             }
 
             CommandIntent.CHECK_RISKY_DEPLOYMENTS -> {

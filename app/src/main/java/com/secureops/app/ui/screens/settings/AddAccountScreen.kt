@@ -428,7 +428,8 @@ private fun getTokenHelpText(provider: CIProvider?): String {
             "Select 'api' and 'read_api' scopes."
         
         CIProvider.JENKINS -> 
-            "Go to Jenkins → User → Configure → API Token → Add new token."
+            "Go to Jenkins → User → Configure → API Token → Add new token. " +
+            "Enter as username:apitoken (e.g. admin:11abc2d3ef456789)."
         
         CIProvider.CIRCLE_CI -> 
             "Go to CircleCI User Settings → Personal API Tokens → Create New Token."

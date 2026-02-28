@@ -286,7 +286,7 @@ fun BuildDetailsScreen(
                                         )
                                     }
 
-                                    // Show ML prediction if available
+                                     // Show ML prediction if available
                                     pipeline.failurePrediction?.let { prediction ->
                                         if (prediction.riskPercentage > 50f) {
                                             Spacer(modifier = Modifier.height(16.dp))
@@ -314,6 +314,88 @@ fun BuildDetailsScreen(
                                                     )
                                                 }
                                             }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        // AI Explainability Card (SHAP-based explanation)
+                        pipeline.failurePrediction?.explanation?.let { explanation ->
+                            item {
+                                AnimatedCardEntrance(delayMillis = 150) {
+                                    ExplainabilityCard(
+                                        explanation = explanation,
+                                        riskPercentage = pipeline.failurePrediction?.riskPercentage ?: 0f
+                                    )
+                                }
+                            }
+                        }
+                        // DevSecOps Threat Analysis summary card
+                        item {
+                            AnimatedCardEntrance(delayMillis = 175) {
+                                GlassCard(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = "🛡️ DevSecOps Security Scan",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(12.dp))
+                                    
+                                    if (uiState.threats.isEmpty()) {
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            NeonChip(text = "0 Threats Detected", color = SuccessGreen)
+                                            Spacer(modifier = Modifier.width(12.dp))
+                                            Text(
+                                                text = "All security checks passed successfully.",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = SuccessGreen
+                                            )
+                                        }
+                                    } else {
+                                        val criticalCount = uiState.threats.count { it.severity == com.secureops.app.ml.security.ThreatSeverity.CRITICAL.level }
+                                        val highCount = uiState.threats.count { it.severity == com.secureops.app.ml.security.ThreatSeverity.HIGH.level }
+                                        val mediumCount = uiState.threats.count { it.severity == com.secureops.app.ml.security.ThreatSeverity.MEDIUM.level }
+                                        
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            if (criticalCount > 0) NeonChip(text = "$criticalCount Critical", color = ErrorRed)
+                                            if (highCount > 0) NeonChip(text = "$highCount High", color = AccentPink)
+                                            if (mediumCount > 0) NeonChip(text = "$mediumCount Medium", color = WarningAmber)
+                                            if (criticalCount == 0 && highCount == 0 && mediumCount == 0) {
+                                                NeonChip(text = "${uiState.threats.size} Low/Info", color = InfoBlue)
+                                            }
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        
+                                        uiState.threats.sortedByDescending { it.severity }.take(3).forEach { threat ->
+                                            Text(
+                                                text = "• ${threat.patternType}",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                            Text(
+                                                text = threat.description,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                        }
+                                        
+                                        if (uiState.threats.size > 3) {
+                                            Text(
+                                                text = "+ ${uiState.threats.size - 3} more threats detailed in Security tab >",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = AccentCyan
+                                            )
                                         }
                                     }
                                 }

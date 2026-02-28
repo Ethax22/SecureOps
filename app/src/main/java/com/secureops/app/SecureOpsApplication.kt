@@ -51,8 +51,8 @@ class SecureOpsApplication : Application() {
         // Initialize RunAnywhere SDK asynchronously following official documentation pattern
         initializeRunAnywhereSDK()
         
-        // Initialize Background Sync
-        initializeBackgroundSync()
+        // Initialize WorkManager tasks (Pipeline Sync & Remediation Tracker)
+        com.secureops.app.data.worker.WorkManagerInitializer.initialize(this)
     }
 
     private fun initializeRunAnywhereSDK() {

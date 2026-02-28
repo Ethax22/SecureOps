@@ -35,6 +35,12 @@ interface JenkinsService {
         @Header("Jenkins-Crumb") crumb: String? = null
     ): Response<Unit>
 
+    @POST("job/{jobName}/buildWithParameters")
+    suspend fun triggerBuildWithParameters(
+        @Path("jobName") jobName: String,
+        @Header("Jenkins-Crumb") crumb: String? = null
+    ): Response<Unit>
+
     @POST("job/{jobName}/{buildNumber}/stop")
     suspend fun stopBuild(
         @Path("jobName") jobName: String,

@@ -7,6 +7,8 @@ import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.data.notification.SlackNotifier
 import com.secureops.app.data.notification.EmailNotifier
 import com.secureops.app.data.notification.SmtpConfig
+import com.secureops.app.data.remediation.RemediationLearner
+import com.secureops.app.data.remediation.FailureTypeDetector
 import com.secureops.app.domain.model.*
 import timber.log.Timber
 import okhttp3.OkHttpClient
@@ -28,19 +30,50 @@ class RemediationExecutor(
     private val azureDevOpsService: AzureDevOpsService,
     private val accountRepository: AccountRepository,
     private val slackNotifier: SlackNotifier,
-    private val gson: Gson
+    private val gson: Gson,
+    private val remediationLearner: RemediationLearner,
+    private val failureTypeDetector: FailureTypeDetector
 ) {
 
     private val prefs = context.getSharedPreferences("notifications", Context.MODE_PRIVATE)
+    
+    // Track remediation attempts
+    private val activeRemediations = mutableMapOf<String, Long>() // pipelineId -> historyId
 
     /**
-     * Execute a remediation action
+     * Execute a remediation action with learning
      */
     suspend fun executeRemediation(action: RemediationAction): ActionResult {
         return try {
             Timber.d("Executing remediation: ${action.type} for pipeline ${action.pipeline.id}")
             
-            when (action.type) {
+            // Detect failure type
+            val failureDetection = failureTypeDetector.detectFailure(action.pipeline)
+            
+            // Record attempt
+            val historyId = remediationLearner.recordAttempt(
+                pipelineId = action.pipeline.id,
+                buildNumber = action.pipeline.buildNumber,
+                repositoryName = action.pipeline.repositoryName,
+                failureType = failureDetection.failureType,
+                failurePattern = failureDetection.failurePattern,
+                actionTaken = action.type.name,
+                actionDescription = action.description,
+                confidenceScore = action.confidence.toDouble(),
+                wasUserApproved = action.requiresConfirmation,
+                approvedBy = null, // Could be enhanced with user tracking
+                accountId = action.pipeline.accountId,
+                failureContext = failureDetection.context,
+                logSnippet = failureDetection.logSnippet
+            )
+            
+            // Track this remediation
+            activeRemediations[action.pipeline.id] = historyId
+            
+            val startTime = System.currentTimeMillis()
+            
+            // Execute the action
+            val result = when (action.type) {
                 ActionType.RERUN_PIPELINE -> rerunPipeline(action.pipeline)
                 ActionType.RERUN_FAILED_JOBS -> rerunFailedJobs(action.pipeline)
                 ActionType.ROLLBACK_DEPLOYMENT -> rollbackDeployment(action.pipeline)
@@ -49,6 +82,20 @@ class RemediationExecutor(
                 ActionType.NOTIFY_SLACK -> notifySlack(action.pipeline, action.parameters)
                 ActionType.NOTIFY_EMAIL -> notifyEmail(action.pipeline, action.parameters)
             }
+            
+            val durationMs = System.currentTimeMillis() - startTime
+            
+            // Record immediate outcome (final outcome tracked by worker)
+            remediationLearner.recordOutcome(
+                historyId = historyId,
+                wasSuccessful = result.success,
+                outcome = if (result.success) "INITIATED" else "FAILED",
+                remediatedBuildNumber = null, // Updated later by tracker
+                errorMessage = if (!result.success) result.message else null,
+                durationMs = durationMs
+            )
+            
+            result
         } catch (e: Exception) {
             Timber.e(e, "Failed to execute remediation: ${action.type}")
             ActionResult(
@@ -57,6 +104,17 @@ class RemediationExecutor(
                 details = mapOf("error" to e.toString())
             )
         }
+    }
+    
+    /**
+     * Get remediation recommendations for a pipeline
+     */
+    suspend fun getRecommendations(pipeline: Pipeline): List<RemediationLearner.RemediationRecommendation> {
+        val failureDetection = failureTypeDetector.detectFailure(pipeline)
+        return remediationLearner.getTopRecommendations(
+            failureType = failureDetection.failureType,
+            failurePattern = failureDetection.failurePattern
+        )
     }
 
     /**
@@ -278,7 +336,13 @@ class RemediationExecutor(
     private suspend fun rerunJenkinsBuild(pipeline: Pipeline, jenkinsServiceDynamic: JenkinsService): ActionResult {
         val jobName = pipeline.repositoryName
         
-        val response = jenkinsServiceDynamic.triggerBuild(jobName)
+        var response = jenkinsServiceDynamic.triggerBuild(jobName)
+        
+        // If 400 Bad Request, the job might be parameterized. Fallback to buildWithParameters.
+        if (response.code() == 400) {
+            Timber.i("Got 400 Bad Request from Jenkins /build endpoint, falling back to /buildWithParameters")
+            response = jenkinsServiceDynamic.triggerBuildWithParameters(jobName)
+        }
         
         return ActionResult(
             success = response.isSuccessful,

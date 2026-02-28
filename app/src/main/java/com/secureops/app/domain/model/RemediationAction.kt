@@ -6,6 +6,7 @@ data class RemediationAction(
     val pipeline: Pipeline,
     val description: String,
     val requiresConfirmation: Boolean = true,
+    val confidence: Float = 0.8f,
     val parameters: Map<String, String> = emptyMap()
 )
 

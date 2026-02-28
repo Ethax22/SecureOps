@@ -8,6 +8,8 @@ import com.secureops.app.data.repository.AccountRepository
 import com.secureops.app.data.remote.PipelineStreamService
 import com.secureops.app.data.remote.LogEntry
 import com.secureops.app.domain.model.*
+import com.secureops.app.data.local.dao.ThreatDao
+import com.secureops.app.data.local.entity.ThreatEntity
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -33,7 +35,8 @@ data class BuildDetailsUiState(
     val streamingLogs: List<LogEntry> = emptyList(),
     val artifacts: List<BuildArtifact> = emptyList(),
     val isLoadingArtifacts: Boolean = false,
-    val artifactsError: String? = null
+    val artifactsError: String? = null,
+    val threats: List<ThreatEntity> = emptyList()
 )
 
 class BuildDetailsViewModel(
@@ -43,6 +46,7 @@ class BuildDetailsViewModel(
 
     private val accountRepository: AccountRepository by inject()
     private val pipelineStreamService: PipelineStreamService by inject()
+    private val threatDao: ThreatDao by inject()
     private val context: Context by inject()
     private var logStreamJob: Job? = null
 
@@ -73,6 +77,13 @@ class BuildDetailsViewModel(
                     
                     // Load artifacts
                     loadArtifacts()
+                    
+                    // Load DevSecOps threats
+                    viewModelScope.launch {
+                        threatDao.getThreatsByPipeline(pipelineId).collect { threats ->
+                            _uiState.value = _uiState.value.copy(threats = threats)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Timber.e(e, "Failed to load pipeline: $pipelineId")

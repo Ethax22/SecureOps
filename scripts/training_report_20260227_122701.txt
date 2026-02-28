@@ -1,0 +1,42 @@
+======================================================================
+SecureOps ML Model Training Report
+======================================================================
+
+Date: 2026-02-27 12:27:01
+TensorFlow Version: 2.20.0
+
+Model Architecture:
+  Dense(64, relu) → Dropout(0.3) → Dense(32, relu) → Dropout(0.3) → Dense(1, sigmoid)
+
+Training Configuration:
+  Epochs: 50
+  Batch Size: 32
+  Validation Split: 0.2
+  Test Split: 0.2
+
+Features (13):
+  1. commit_size
+  2. test_failure_rate
+  3. code_complexity
+  4. test_coverage_change
+  5. error_pattern_count
+  6. warning_count
+  7. build_stability
+  8. commit_sentiment
+  9. dependency_changes
+  10. config_changes
+  11. hour_of_day
+  12. day_of_week
+  13. author_failure_rate
+
+Test Set Performance:
+  Accuracy:  1.0000
+  Precision: 1.0000
+  Recall:    1.0000
+  F1 Score:  1.0000
+
+Confusion Matrix:
+  [[100, 0],
+   [0, 100]]
+
+======================================================================

@@ -13,6 +13,8 @@ import com.secureops.app.data.security.SecureTokenManager
 import com.secureops.app.data.auth.OAuth2Manager
 import com.secureops.app.ml.*
 import com.secureops.app.ml.advanced.*
+import com.secureops.app.ml.evaluation.*
+import com.secureops.app.ml.training.*
 import com.secureops.app.ml.voice.TextToSpeechManager
 import com.secureops.app.ml.voice.VoiceActionExecutor
 import com.google.gson.Gson
@@ -30,7 +32,21 @@ val repositoryModule = module {
 
     // Repositories
     single { AccountRepository(get(), get()) }
-    single { PipelineRepository(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    single { 
+        PipelineRepository(
+            pipelineDao = get(),
+            gitHubService = get(),
+            gitLabService = get(),
+            jenkinsService = get(),
+            circleCIService = get(),
+            azureDevOpsService = get(),
+            accountRepository = get(),
+            failurePredictionModel = get(),
+            gson = get(),
+            buildEvaluationDao = get(),
+            labelGenerator = get()
+        )
+    }
     single { AnalyticsRepository(get()) }
     single { VoiceMessageRepository(get()) }
 
@@ -51,24 +67,36 @@ val repositoryModule = module {
             azureDevOpsService = get(),
             accountRepository = get(),
             slackNotifier = get(),
-            gson = get()
+            gson = get(),
+            remediationLearner = get(),
+            failureTypeDetector = get()
         )
     }
 
     // ML Components
     single { RunAnywhereManager(androidContext()) }
-    single { FailurePredictionModel(androidContext()) }
+    single { FailurePredictionModel(androidContext(), get(), get()) }
     single { RootCauseAnalyzer() }
     single { VoiceCommandProcessor() }
     single { TextToSpeechManager(androidContext()) }
     single { PlaybookManager(get()) }
-    single { VoiceActionExecutor(get(), get(), get(), get(), get(), get()) }
+    single { VoiceActionExecutor(get(), get(), get(), get(), get(), get(), get()) }
 
     // Advanced ML Components
     single { CascadeAnalyzer(get()) }
     single { ChangelogAnalyzer(get(), get()) }
     single { DeploymentScheduler(get(), get()) }
     single { FlakyTestDetector(get()) }
+
+    // ML Training Infrastructure
+    single { FeatureExtractor(get()) }
+    single { LabelGenerator() }
+    single { DatasetExporter(androidContext()) }
+    single { DatasetBuilder(get(), get(), get()) }
+    single { TrainingDatasetManager(androidContext(), get(), get(), get()) }
+
+    // ML Evaluation Infrastructure
+    single { MetricsCalculator() }
 
     // ✅ NEW: Auto-Remediation Engine
     single {

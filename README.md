@@ -14,14 +14,15 @@
 
 ## 🚀 What is SecureOps?
 
-SecureOps is an Android mobile app that **predicts CI/CD pipeline failures before they happen**,
-diagnoses root causes instantly, and enables **one-tap or voice-powered remediation**—all while
-keeping your code and logs secure on your device.
+SecureOps is a blazing-fast, native Android mobile application designed to be the ultimate **Command Center** for modern engineering teams.
+
+It **predicts CI/CD pipeline failures before they happen**, diagnoses root causes instantly using advanced **SHAP Explainability**, runs parallel **DevSecOps** security scans, and enables **one-tap or voice-powered remediation**—all while keeping your proprietary code and logs 100% secure on your device.
 
 ### Why SecureOps?
 
 - 🔮 **Prevent Failures** - ML predicts issues before pipelines complete
 - ⚡ **Fix Instantly** - One-tap or voice command remediation from anywhere
+- 🛡️ **Stay Secure** - DevSecOps scanning finds vulnerabilities automatically
 - 🔒 **100% Private** - All AI runs on-device using RunAnywhere's blazing-fast stack
 - 🎤 **Voice-First** - Ask questions, get insights, trigger fixes—hands-free
 - 📱 **Always Available** - Works offline with flaky connections
@@ -33,9 +34,16 @@ keeping your code and logs secure on your device.
 ### 🔮 AI Failure Prediction Engine
 
 - **Proactive Alerts** - Get notified *before* pipelines fail, not after
-- **Confidence Scores** - "99% chance to fail due to timeout in tests"
+- **Confidence Risk Scores** - Advanced ML modeling calculates risk down to the exact percentage
+- **SHAP Explainability** - Completely transparent quantified explanations. We show you exactly *why* a build is risky.
 - **Pattern Analysis** - Analyzes commit diffs, test history, and log patterns
 - **Risk Assessment** - Predicts deployment risk in real-time
+
+### 🛡️ DevSecOps Intelligence
+
+- **Continuous Security Scanning** - Check repositories against CVEs instantly.
+- **Threat Matrices** - Clear breakdown of Critical, High, Medium, and Low vulnerabilities.
+- **Compliance Tracking** - Detects excessive permissions, outdated dependencies, and secrets.
 
 ### 🎯 Root Cause Analyzer
 
@@ -46,7 +54,7 @@ keeping your code and logs secure on your device.
 
 ### 🎤 Voice-Powered DevOps (RunAnywhere SDK)
 
-Ask anything, anytime:
+Ask anything, anytime. Our system maps known DevOps intents to actions.
 
 ```
 "Why did this fail?"
@@ -55,6 +63,9 @@ Ask anything, anytime:
 "Rerun this build"
 "Rollback deploy"
 ```
+
+**On-Device LLM Fallback**
+If you ask an open-ended question the system hasn't pre-defined, the app falls back to our on-device LLM (`RunAnywhereManager`) to intelligently answer complex engineering queries without needing the internet.
 
 ### ⚡ One-Tap Remediation
 

@@ -17,6 +17,7 @@ import java.io.FileOutputStream
 import java.io.OutputStream
 import java.text.SimpleDateFormat
 import java.util.*
+import android.annotation.TargetApi
 
 object FileExportUtil {
 
@@ -61,6 +62,7 @@ object FileExportUtil {
         }
     }
 
+    @TargetApi(29)
     private fun saveToMediaStore(
         context: Context,
         fileName: String,

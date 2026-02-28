@@ -28,6 +28,7 @@ fun SettingsScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToAIModels: () -> Unit = {},
     onNavigateToNotificationSettings: () -> Unit = {},
+    onNavigateToOfflineSettings: () -> Unit = {},
     onDarkModeChanged: (Boolean) -> Unit = {},
     viewModel: SettingsViewModel = viewModel()
 ) {
@@ -154,6 +155,27 @@ fun SettingsScreen(
                         subtitle = "Configure notification preferences",
                         onClick = onNavigateToNotificationSettings,
                         iconColor = InfoBlue
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Development",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = PrimaryPurple,
+                        modifier = Modifier.padding(vertical = 8.dp)
+                    )
+                }
+                
+                item {
+                    SettingsItem(
+                        icon = Icons.Default.CloudOff,
+                        title = "Offline & Demo Mode",
+                        subtitle = "Test offline resilience and demo data",
+                        onClick = onNavigateToOfflineSettings,
+                        iconColor = AccentPink
                     )
                 }
 

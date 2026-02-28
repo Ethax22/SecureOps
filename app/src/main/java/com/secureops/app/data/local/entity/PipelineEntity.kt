@@ -29,18 +29,28 @@ data class PipelineEntity(
     val predictionConfidence: Float?,
     val predictionFactors: String?,
     val predictionTimestamp: Long?,
+    val predictionExplanationJson: String? = null,
     val cachedAt: Long = System.currentTimeMillis(),
     val logs: String? = null,  // Cached build logs
     val logsCachedAt: Long? = null  // When logs were cached
 )
 
 fun PipelineEntity.toDomain(): Pipeline {
+    val explanation = predictionExplanationJson?.let {
+        try {
+            com.google.gson.Gson().fromJson(it, com.secureops.app.ml.explainability.ExplanationResult::class.java)
+        } catch (e: Exception) {
+            null
+        }
+    }
+
     val failurePrediction = if (predictionRisk != null && predictionConfidence != null) {
         FailurePrediction(
             riskPercentage = predictionRisk,
             confidence = predictionConfidence,
-            causalFactors = predictionFactors?.split("|") ?: emptyList(),
-            predictedAt = predictionTimestamp ?: System.currentTimeMillis()
+            causalFactors = predictionFactors?.split("|")?.filter { it.isNotBlank() } ?: emptyList(),
+            predictedAt = predictionTimestamp ?: System.currentTimeMillis(),
+            explanation = explanation
         )
     } else null
 
@@ -88,6 +98,13 @@ fun Pipeline.toEntity(): PipelineEntity = PipelineEntity(
     predictionConfidence = failurePrediction?.confidence,
     predictionFactors = failurePrediction?.causalFactors?.joinToString("|"),
     predictionTimestamp = failurePrediction?.predictedAt,
+    predictionExplanationJson = failurePrediction?.explanation?.let {
+        try {
+            com.google.gson.Gson().toJson(it)
+        } catch (e: Exception) {
+            null
+        }
+    },
     logs = logs,
     logsCachedAt = logsCachedAt
 )

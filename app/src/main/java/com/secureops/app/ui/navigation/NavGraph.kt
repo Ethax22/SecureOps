@@ -14,12 +14,18 @@ import com.secureops.app.ui.screens.settings.AddAccountScreen
 import com.secureops.app.ui.screens.settings.ManageAccountsScreen
 import com.secureops.app.ui.screens.settings.EditAccountScreen
 import com.secureops.app.ui.screens.settings.NotificationSettingsScreen
+import com.secureops.app.ui.screens.settings.OfflineSettingsScreen
 import com.secureops.app.ui.screens.voice.VoiceScreen
 import com.secureops.app.ui.screens.details.BuildDetailsScreen
+import com.secureops.app.ui.screens.modelperformance.ModelPerformanceScreen
+import com.secureops.app.ui.screens.security.SecurityScreen
+import com.secureops.app.ui.screens.benchmark.BenchmarkScreen
+import com.secureops.app.ui.screens.about.AboutScreen
 
 sealed class Screen(val route: String) {
     object Dashboard : Screen("dashboard")
     object Analytics : Screen("analytics")
+    object Security : Screen("security")
     object Settings : Screen("settings")
     object AddAccount : Screen("add_account")
     object ManageAccounts : Screen("manage_accounts")
@@ -27,11 +33,15 @@ sealed class Screen(val route: String) {
         fun createRoute(accountId: String) = "edit_account/$accountId"
     }
     object NotificationSettings : Screen("notification_settings")
+    object OfflineSettings : Screen("offline_settings")
     object Voice : Screen("voice")
     object AIModels : Screen("ai_models")
     object BuildDetails : Screen("build_details/{pipelineId}") {
         fun createRoute(pipelineId: String) = "build_details/$pipelineId"
     }
+    object ModelPerformance : Screen("model_performance")
+    object Benchmark : Screen("benchmark")
+    object About : Screen("about")
 }
 
 @Composable
@@ -56,6 +66,10 @@ fun SecureOpsNavGraph(
             AnalyticsScreen()
         }
 
+        composable(Screen.Security.route) {
+            SecurityScreen()
+        }
+
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onNavigateToAddAccount = {
@@ -69,6 +83,9 @@ fun SecureOpsNavGraph(
                 },
                 onNavigateToNotificationSettings = {
                     navController.navigate(Screen.NotificationSettings.route)
+                },
+                onNavigateToOfflineSettings = {
+                    navController.navigate(Screen.OfflineSettings.route)
                 },
                 onDarkModeChanged = onDarkModeChanged
             )
@@ -117,6 +134,14 @@ fun SecureOpsNavGraph(
             )
         }
 
+        composable(Screen.OfflineSettings.route) {
+            OfflineSettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
         composable(Screen.AIModels.route) {
             AIModelsScreen(
                 onNavigateBack = {
@@ -127,6 +152,22 @@ fun SecureOpsNavGraph(
 
         composable(Screen.Voice.route) {
             VoiceScreen()
+        }
+
+        composable(Screen.ModelPerformance.route) {
+            ModelPerformanceScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Screen.Benchmark.route) {
+            BenchmarkScreen()
+        }
+
+        composable(Screen.About.route) {
+            AboutScreen(
+                onNavigateBack = { navController.popBackStack() }
+            )
         }
 
         composable(

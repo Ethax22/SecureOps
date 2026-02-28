@@ -3,6 +3,8 @@ package com.secureops.app.di
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import com.secureops.app.data.remote.api.*
+import com.secureops.app.data.offline.OfflineInterceptor
+import com.secureops.app.data.offline.OfflineSimulator
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import org.koin.core.qualifier.named
@@ -29,8 +31,12 @@ val networkModule = module {
                 HttpLoggingInterceptor.Level.NONE
             }
         }
+        
+        // Offline interceptor for simulation
+        val offlineInterceptor = OfflineInterceptor(get<OfflineSimulator>())
 
         OkHttpClient.Builder()
+            .addInterceptor(offlineInterceptor) // Add offline interceptor first
             .addInterceptor(loggingInterceptor)
             .connectTimeout(60, TimeUnit.SECONDS)
             .readTimeout(120, TimeUnit.SECONDS)
