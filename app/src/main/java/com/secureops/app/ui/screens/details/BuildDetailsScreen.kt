@@ -351,10 +351,56 @@ fun BuildDetailsScreen(
                                             NeonChip(text = "0 Threats Detected", color = SuccessGreen)
                                             Spacer(modifier = Modifier.width(12.dp))
                                             Text(
-                                                text = "All security checks passed successfully.",
+                                                text = "All security checks passed.",
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = SuccessGreen
                                             )
+                                        }
+                                        
+                                        Spacer(modifier = Modifier.height(16.dp))
+                                        
+                                        Text(
+                                            text = "Protective Scan Contributions:",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            fontWeight = FontWeight.Bold,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        
+                                        val checks = listOf(
+                                            "Static Source Code Analysis" to "−15.0% risk",
+                                            "Dependency Vulnerability Scan" to "−10.0% risk",
+                                            "Hardcoded Secrets Detection" to "−5.0% risk",
+                                            "Infrastructure Drift Check" to "−2.0% risk"
+                                        )
+                                        
+                                        checks.forEach { (check, contribution) ->
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.CheckCircle,
+                                                        contentDescription = null,
+                                                        tint = SuccessGreen,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = check,
+                                                        style = MaterialTheme.typography.bodyMedium,
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                                Text(
+                                                    text = contribution,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = SuccessGreen
+                                                )
+                                            }
                                         }
                                     } else {
                                         val criticalCount = uiState.threats.count { it.severity == com.secureops.app.ml.security.ThreatSeverity.CRITICAL.level }

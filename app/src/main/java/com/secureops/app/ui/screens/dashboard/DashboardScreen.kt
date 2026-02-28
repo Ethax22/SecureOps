@@ -210,31 +210,30 @@ fun PipelineCard(
 
             // Risk Prediction Badge
             pipeline.failurePrediction?.let { prediction ->
-                if (prediction.riskPercentage > 50f) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = when {
-                            prediction.riskPercentage > 80f -> ErrorRed
-                            prediction.riskPercentage > 60f -> WarningAmber
-                            else -> InfoBlue
-                        }
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = when {
+                        prediction.riskPercentage > 80f -> ErrorRed
+                        prediction.riskPercentage > 50f -> WarningAmber
+                        prediction.riskPercentage > 20f -> InfoBlue
+                        else -> SuccessGreen
+                    }
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "⚠️",
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = "${prediction.riskPercentage.toInt()}%",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White
-                            )
-                        }
+                        Text(
+                            text = if (prediction.riskPercentage > 50f) "⚠️" else "🛡️",
+                            style = MaterialTheme.typography.labelMedium
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "${prediction.riskPercentage.toInt()}%",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.White
+                        )
                     }
                 }
             }

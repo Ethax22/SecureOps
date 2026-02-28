@@ -458,7 +458,9 @@ class FailurePredictionModel(
         // Simulated ML inference with 13 features
         // In production, this would use the TensorFlow Lite interpreter
         
-        var riskScore = 0f
+        // Base risk score (critical to prevent extensive negative weight 
+        // subtractions from clamping the final calculation to 0%)
+        var riskScore = 45f
         var confidence = 0.85f
         
         // Weight the features (aligned with SHAP weights)
